@@ -1,16 +1,24 @@
 [
     {
         "account_type": "0",
-        "email": "asoham60@gmail.com",
-        "username": "Soham",
-        "unique_id": "0-Soham-97695d15",
-        "password_hash": "24b84f1caeaab3f9260d938f15a17b71db9eb6a6eea861eaa25095546c83576c"
-    },
-    {
-        "account_type": "0",
         "email": "kulkarnikalmit@gmail.com",
         "username": "Kalmit",
         "unique_id": "0-Kalmit-01a3ab6a",
         "password_hash": "8bb0cf6eb9b17d0f7d22b456f121257dc1254e1f01665370476383ea776df414"
+    },
+    {
+        "account_type": "Tenant",
+        "email": "sohamathawale2003@gmail.com",
+        "username": "Soham",
+        "unique_id": "1-Soham-b77d07bf",
+        "password_hash": "24b84f1caeaab3f9260d938f15a17b71db9eb6a6eea861eaa25095546c83576c",
+        "currently_rented": false
+    },
+    {
+        "account_type": "Owner",
+        "email": "asoham60@gmail.com",
+        "username": "Soham",
+        "unique_id": "0-Soham-cd913a98",
+        "password_hash": "24b84f1caeaab3f9260d938f15a17b71db9eb6a6eea861eaa25095546c83576c"
     }
 ]

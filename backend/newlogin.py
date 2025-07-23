@@ -5,7 +5,8 @@ import hashlib
 import random
 import smtplib
 from email.mime.text import MIMEText
-from ownerreqests import create_flat_listing  
+from ownerreqests import create_flat_listing , rent_out_flat_flow
+
 # -------------------- EMAIL VERIFICATION SETUP --------------------
 SENDER_EMAIL = "rentmyhouseco@gmail.com" # Replace with your Gmail address
 SENDER_PASSWORD = "tetr smma xirk hfzc"  # Replace with App Password (from Google)
@@ -30,7 +31,6 @@ def send_verification_email(receiver_email, otp):
     msg["Subject"] = subject
     msg["From"] = SENDER_EMAIL
     msg["To"] = receiver_email
-
 
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
@@ -77,19 +77,19 @@ def user_exists(email):
 # -------------------- SIGNUP --------------------
 
 def signup(logintype, email):
-    if not verify_email_flow(email):
+    folder = user_exists(email)  # <<< FIXED LINE
+    if folder:
+        print("User already exists. Please login instead.")
+        return
+
+    if not verify_email_flow(email):  # <<< FIXED LINE
         print("Email verification failed. Signup cancelled.")
         return
 
-    folder = user_exists(email)
-    if folder:
-        print("User already exists. Please login.")
-        return
-
-    username = input("Set your username: ")
+    username = input("Set your username: ").strip()
     while True:
-        password = input("Set your password: ")
-        confirm_password = input("Confirm your password: ")
+        password = input("Set your password: ").strip()
+        confirm_password = input("Confirm your password: ").strip()
         if password == confirm_password:
             break
         print("Passwords do not match. Please try again.")
@@ -99,17 +99,35 @@ def signup(logintype, email):
     os.makedirs(user_dir, exist_ok=True)
 
     user_data = {
-        "account_type": logintype,
+        "account_type": "Owner" if logintype == "0" else "Tenant",
         "email": email,
         "username": username,
         "unique_id": unique_id,
         "password_hash": hash_password(password)
     }
 
+    # -------- TENANT SPECIFIC QUESTION --------
+    if logintype == "1":
+        rented_status = input("Are you currently renting a flat? (yes/no): ").strip().lower()
+        user_data["currently_rented"] = rented_status == "yes"
+
+        # Choose correct file
+        tenant_file = "tenants_rented.json" if user_data["currently_rented"] else "tenants_unrented.json"
+        if os.path.exists(tenant_file):
+            with open(tenant_file, "r") as f:
+                tenant_list = json.load(f)
+        else:
+            tenant_list = []
+
+        tenant_list.append(user_data)
+        with open(tenant_file, "w") as f:
+            json.dump(tenant_list, f, indent=4)
+
+    # -------- Save user in their own directory --------
     with open(os.path.join(user_dir, "info.json"), "w") as f:
         json.dump(user_data, f, indent=4)
 
-    # Update global users.json
+    # -------- Update global users.json --------
     users_json = "users.json"
     if os.path.exists(users_json):
         with open(users_json, "r") as f:
@@ -131,14 +149,14 @@ def login(logintype, email):
         print("User does not exist. Please sign up.")
         return None
 
-    password = input("Password: ")
+    password = input("Password: ").strip()
     user_dir = os.path.join("users", folder)
     info_path = os.path.join(user_dir, "info.json")
 
     if os.path.exists(info_path):
         with open(info_path, "r") as f:
             user_data = json.load(f)
-            if user_data.get("account_type") != logintype:
+            if user_data.get("account_type") != ("Owner" if logintype == "0" else "Tenant"):
                 print("Account type does not match.")
                 return None
             if user_data.get("password_hash") == hash_password(password):
@@ -167,6 +185,9 @@ def main():
             next_action = input("Do you want to add a new listing? (yes/no): ").strip().lower()
             if next_action == "yes":
                 create_flat_listing(user_unique_id)
+            else:
+                rent_out_flat_flow(user_unique_id)
+
     else:
         print("Invalid action.")
 
