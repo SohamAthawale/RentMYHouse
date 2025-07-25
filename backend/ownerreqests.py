@@ -1,186 +1,388 @@
-import os
-import json
-import smtplib
-import random
-from datetime import datetime
-from email.mime.text import MIMEText
+# Owner Requests Module for Rental Management System
 
-# ---------- EMAIL CONFIG ----------
-SENDER_EMAIL = "rentmyhouseco@gmail.com"  # replace with your Gmail
-SENDER_PASSWORD = "tetr smma xirk hfzc"  # generated from Gmail (App Password)
+from datetime import datetime, date
+import uuid
+from decimal import Decimal
+from models import db, User, Flat, RentPayment
 
-# ---------- OTP AND EMAIL ----------
-def generate_otp():
-    return str(random.randint(100000, 999999))
-
-def send_assignment_email(tenant_email, tenant_name, flat_info, otp):
-    subject = "🏠 Flat Assignment Confirmation - RentMyHouse"
-    body = (
-        f"Hello {tenant_name},\n\n"
-        f"You have been assigned the following flat:\n"
-        f"Title: {flat_info['title']}\n"
-        f"Address: {flat_info['address']}\n"
-        f"Rent: {flat_info['rent']}\n\n"
-        f"To confirm this assignment, please enter the following OTP:\n"
-        f"OTP: {otp}\n\n"
-        f"If this wasn't you, ignore this message.\n\n"
-        f"Best,\nRentMyHouse Team"
-    )
-
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = SENDER_EMAIL
-    msg["To"] = tenant_email
-
+def create_flat(owner_unique_id, title, address, rent):
+    """
+    Create a new flat listing by an owner.
+    
+    Args:
+        owner_unique_id (str): Owner's unique identifier
+        title (str): Flat title/name
+        address (str): Flat address
+        rent (float): Monthly rent amount
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.send_message(msg)
-        return True
+        # Verify owner exists and is an owner
+        owner = User.query.filter_by(unique_id=owner_unique_id).first()
+        if not owner:
+            return {"status": "fail", "message": "Owner not found"}, 404
+        
+        if owner.account_type != 'Owner':
+            return {"status": "fail", "message": "Only owners can create flat listings"}, 403
+
+        # Validate input data
+        if not title or not title.strip():
+            return {"status": "fail", "message": "Flat title is required"}, 400
+        
+        if not address or not address.strip():
+            return {"status": "fail", "message": "Flat address is required"}, 400
+        
+        if not rent or rent <= 0:
+            return {"status": "fail", "message": "Valid rent amount is required"}, 400
+
+        # Generate unique flat_unique_id
+        flat_unique_id = f"flat-{uuid.uuid4().hex[:12]}"
+        while Flat.query.filter_by(flat_unique_id=flat_unique_id).first():
+            flat_unique_id = f"flat-{uuid.uuid4().hex[:12]}"
+
+        # Create new flat
+        flat = Flat(
+            flat_unique_id=flat_unique_id,
+            owner_unique_id=owner_unique_id,
+            title=title.strip(),
+            address=address.strip(),
+            rent=Decimal(str(rent)),
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(flat)
+        db.session.commit()
+
+        return {
+            "status": "success",
+            "message": "Flat created successfully",
+            "flat": {
+                "flat_unique_id": flat.flat_unique_id,
+                "title": flat.title,
+                "address": flat.address,
+                "rent": str(flat.rent),
+                "owner_username": owner.username
+            }
+        }, 201
+
     except Exception as e:
-        print(f"\n❌ Failed to send email: {e}")
-        return False
+        db.session.rollback()
+        return {"status": "fail", "message": f"Failed to create flat: {str(e)}"}, 500
 
-# ---------- FLAT CREATION ----------
-def create_flat_listing(user_unique_id):
-    listings_dir = os.path.join("users", user_unique_id, "listings")
-    os.makedirs(listings_dir, exist_ok=True)
+def list_flats():
+    """
+    List all flats with their details and current status.
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        flats = Flat.query.all()
+        flats_data = []
+        
+        for flat in flats:
+            flat_info = {
+                "flat_unique_id": flat.flat_unique_id,
+                "title": flat.title,
+                "address": flat.address,
+                "rent": str(flat.rent),
+                "created_at": flat.created_at.isoformat(),
+                "owner": {
+                    "unique_id": flat.owner.unique_id,
+                    "username": flat.owner.username,
+                    "contact_no": flat.owner.contact_no
+                } if flat.owner else None,
+                "tenant": {
+                    "unique_id": flat.tenant.unique_id,
+                    "username": flat.tenant.username,
+                    "contact_no": flat.tenant.contact_no
+                } if flat.tenant else None,
+                "is_rented": flat.rented_to_unique_id is not None
+            }
+            flats_data.append(flat_info)
 
-    title = input("Enter flat title: ")
-    address = input("Enter flat address: ")
-    rent = input("Enter monthly rent: ")
+        return {"status": "success", "flats": flats_data}, 200
 
-    listing = {
-        "title": title,
-        "address": address,
-        "rent": rent,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "rented_to": None
-    }
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to list flats: {str(e)}"}, 500
 
-    listing_num = len(os.listdir(listings_dir)) + 1
-    listing_file = os.path.join(listings_dir, f"flat_{listing_num}.json")
+def get_owner_flats(owner_unique_id):
+    """
+    Get all flats owned by a specific owner.
+    
+    Args:
+        owner_unique_id (str): Owner's unique identifier
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        owner = User.query.filter_by(unique_id=owner_unique_id).first()
+        if not owner:
+            return {"status": "fail", "message": "Owner not found"}, 404
+        
+        if owner.account_type != 'Owner':
+            return {"status": "fail", "message": "User is not an owner"}, 403
 
-    with open(listing_file, "w") as f:
-        json.dump(listing, f, indent=4)
+        flats = owner.flats_owned.all()
+        flats_data = []
+        
+        total_rent = 0
+        occupied_count = 0
+        
+        for flat in flats:
+            is_rented = flat.rented_to_unique_id is not None
+            if is_rented:
+                occupied_count += 1
+                total_rent += float(flat.rent)
+            
+            flat_info = {
+                "flat_unique_id": flat.flat_unique_id,
+                "title": flat.title,
+                "address": flat.address,
+                "rent": str(flat.rent),
+                "created_at": flat.created_at.isoformat(),
+                "is_rented": is_rented,
+                "tenant": {
+                    "unique_id": flat.tenant.unique_id,
+                    "username": flat.tenant.username,
+                    "contact_no": flat.tenant.contact_no
+                } if flat.tenant else None
+            }
+            flats_data.append(flat_info)
 
-    print(f"\n✅ Flat '{title}' listed successfully.")
+        return {
+            "status": "success", 
+            "flats": flats_data,
+            "summary": {
+                "total_properties": len(flats),
+                "occupied_properties": occupied_count,
+                "vacant_properties": len(flats) - occupied_count,
+                "monthly_income": total_rent,
+                "occupancy_rate": round((occupied_count / len(flats) * 100), 2) if flats else 0
+            }
+        }, 200
 
-# ---------- FLAT & TENANT MANAGEMENT ----------
-def get_existing_listings(user_unique_id):
-    listings_dir = os.path.join("users", user_unique_id, "listings")
-    if not os.path.exists(listings_dir):
-        return []
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to get owner flats: {str(e)}"}, 500
 
-    listings = []
-    for fname in os.listdir(listings_dir):
-        if fname.endswith(".json"):
-            with open(os.path.join(listings_dir, fname)) as f:
-                data = json.load(f)
-                listings.append((fname, data))
-    return listings
+def rent_flat(flat_unique_id, tenant_unique_id):
+    """
+    Rent a flat to a tenant.
+    
+    Args:
+        flat_unique_id (str): Flat's unique identifier
+        tenant_unique_id (str): Tenant's unique identifier
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        # Find flat and tenant
+        flat = Flat.query.filter_by(flat_unique_id=flat_unique_id).first()
+        tenant = User.query.filter_by(unique_id=tenant_unique_id).first()
+        
+        if not flat:
+            return {"status": "fail", "message": "Flat not found"}, 404
+        
+        if not tenant:
+            return {"status": "fail", "message": "Tenant not found"}, 404
+        
+        if tenant.account_type != 'Tenant':
+            return {"status": "fail", "message": "User is not a tenant"}, 400
+        
+        # Check if flat is already rented
+        if flat.rented_to_unique_id:
+            return {"status": "fail", "message": "Flat is already rented"}, 400
+        
+        # Check if tenant is already renting another flat
+        if tenant.currently_rented:
+            return {"status": "fail", "message": "Tenant is already renting another property"}, 400
 
-def load_unrented_tenants():
-    path = "tenants_unrented.json"
-    if not os.path.exists(path):
-        return []
+        # Rent the flat
+        flat.rented_to_unique_id = tenant_unique_id
+        tenant.currently_rented = True
+        
+        # Create initial rent payment record
+        payment_unique_id = f"pay-{uuid.uuid4().hex[:10]}"
+        while RentPayment.query.filter_by(payment_unique_id=payment_unique_id).first():
+            payment_unique_id = f"pay-{uuid.uuid4().hex[:10]}"
+        
+        rent_payment = RentPayment(
+            payment_unique_id=payment_unique_id,
+            flat_unique_id=flat_unique_id,
+            tenant_unique_id=tenant_unique_id,
+            owner_unique_id=flat.owner_unique_id,
+            amount=flat.rent,
+            payment_date=datetime.utcnow(),
+            due_date=date.today().replace(day=1),  # First of current month
+            payment_method='Other',
+            payment_status='Paid',
+            notes='Initial rent payment upon rental agreement'
+        )
+        
+        db.session.add(rent_payment)
+        db.session.commit()
 
-    with open(path, "r") as f:
-        tenants = json.load(f)
-        return [t for t in tenants if not t.get("currently_rented", False)]
+        return {
+            "status": "success",
+            "message": f"Flat '{flat.title}' rented to {tenant.username}",
+            "rental_details": {
+                "flat_unique_id": flat.flat_unique_id,
+                "flat_title": flat.title,
+                "tenant_username": tenant.username,
+                "tenant_unique_id": tenant_unique_id,
+                "monthly_rent": str(flat.rent),
+                "rental_date": datetime.utcnow().isoformat(),
+                "payment_unique_id": payment_unique_id
+            }
+        }, 200
 
-def save_rented_tenant(tenant):
-    rented_path = "tenants_rented.json"
-    rented = []
-    if os.path.exists(rented_path):
-        with open(rented_path, "r") as f:
-            rented = json.load(f)
-    rented.append(tenant)
-    with open(rented_path, "w") as f:
-        json.dump(rented, f, indent=4)
+    except Exception as e:
+        db.session.rollback()
+        return {"status": "fail", "message": f"Failed to rent flat: {str(e)}"}, 500
 
-def update_unrented_list(exclude_email):
-    path = "tenants_unrented.json"
-    with open(path, "r") as f:
-        tenants = json.load(f)
-    updated = [t for t in tenants if t["email"] != exclude_email]
-    with open(path, "w") as f:
-        json.dump(updated, f, indent=4)
+def vacate_flat(flat_unique_id):
+    """
+    Vacate a flat (remove tenant).
+    
+    Args:
+        flat_unique_id (str): Flat's unique identifier
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        flat = Flat.query.filter_by(flat_unique_id=flat_unique_id).first()
+        
+        if not flat:
+            return {"status": "fail", "message": "Flat not found"}, 404
+        
+        if not flat.rented_to_unique_id:
+            return {"status": "fail", "message": "Flat is not currently rented"}, 400
 
-# ---------- MAIN FLOW ----------
-def rent_out_flat_flow(user_unique_id):
-    listings = get_existing_listings(user_unique_id)
-    if not listings:
-        print("❌ No listings found.")
-        return
+        # Get tenant and update their status
+        tenant = flat.tenant
+        if tenant:
+            tenant.currently_rented = False
+        
+        # Clear rental information
+        tenant_name = tenant.username if tenant else "Unknown"
+        flat.rented_to_unique_id = None
+        
+        db.session.commit()
 
-    print("\nAvailable Flats:")
-    for i, (file, listing) in enumerate(listings, start=1):
-        rented = f"Rented to: {listing['rented_to']}" if listing.get("rented_to") else "Available"
-        print(f"{i}. {listing['title']} - {listing['address']} ({rented})")
+        return {
+            "status": "success",
+            "message": f"Flat '{flat.title}' vacated by {tenant_name}",
+            "flat_details": {
+                "flat_unique_id": flat.flat_unique_id,
+                "title": flat.title,
+                "address": flat.address,
+                "is_available": True
+            }
+        }, 200
 
-    flat_choice = input("Select a flat by number: ").strip()
-    if not flat_choice.isdigit() or int(flat_choice) < 1 or int(flat_choice) > len(listings):
-        print("❌ Invalid flat selection.")
-        return
+    except Exception as e:
+        db.session.rollback()
+        return {"status": "fail", "message": f"Failed to vacate flat: {str(e)}"}, 500
 
-    flat_idx = int(flat_choice) - 1
-    listing_file, listing_data = listings[flat_idx]
+def delete_flat(flat_unique_id):
+    """
+    Delete a flat listing.
+    
+    Args:
+        flat_unique_id (str): Flat's unique identifier
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        flat = Flat.query.filter_by(flat_unique_id=flat_unique_id).first()
+        
+        if not flat:
+            return {"status": "fail", "message": "Flat not found"}, 404
+        
+        # Check if flat is currently rented
+        if flat.rented_to_unique_id:
+            return {"status": "fail", "message": "Cannot delete a rented flat. Vacate it first."}, 400
 
-    if listing_data.get("rented_to"):
-        print("⚠️ This flat is already rented.")
-        return
+        flat_title = flat.title
+        db.session.delete(flat)
+        db.session.commit()
 
-    tenants = load_unrented_tenants()
-    if not tenants:
-        print("❌ No unrented tenants available.")
-        return
+        return {
+            "status": "success",
+            "message": f"Flat '{flat_title}' deleted successfully"
+        }, 200
 
-    print("\nAvailable Tenants:")
-    for i, t in enumerate(tenants, start=1):
-        print(f"{i}. {t['username']} - {t['email']}")
+    except Exception as e:
+        db.session.rollback()
+        return {"status": "fail", "message": f"Failed to delete flat: {str(e)}"}, 500
 
-    tenant_choice = input("Select a tenant by number: ").strip()
-    if not tenant_choice.isdigit() or int(tenant_choice) < 1 or int(tenant_choice) > len(tenants):
-        print("❌ Invalid tenant selection.")
-        return
+def list_all_tenants():
+    """
+    List all tenants with their rental status.
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        tenants = User.query.filter_by(account_type='Tenant').all()
+        tenants_data = []
+        
+        for tenant in tenants:
+            current_rental = tenant.flats_rented.first()
+            
+            tenant_info = {
+                "unique_id": tenant.unique_id,
+                "username": tenant.username,
+                "email": tenant.email,
+                "contact_no": tenant.contact_no,
+                "currently_rented": tenant.currently_rented,
+                "created_at": tenant.created_at.isoformat(),
+                "current_rental": {
+                    "flat_unique_id": current_rental.flat_unique_id,
+                    "title": current_rental.title,
+                    "address": current_rental.address,
+                    "rent": str(current_rental.rent)
+                } if current_rental else None
+            }
+            tenants_data.append(tenant_info)
 
-    tenant_idx = int(tenant_choice) - 1
-    selected_tenant = tenants[tenant_idx]
+        return {"status": "success", "tenants": tenants_data}, 200
 
-    # 1. Send OTP
-    otp = generate_otp()
-    email_sent = send_assignment_email(
-        tenant_email=selected_tenant["email"],
-        tenant_name=selected_tenant["username"],
-        flat_info=listing_data,
-        otp=otp
-    )
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to list tenants: {str(e)}"}, 500
 
-    if not email_sent:
-        print("❌ Could not send confirmation email. Assignment cancelled.")
-        return
+def list_available_tenants():
+    """
+    List tenants who are not currently renting.
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        available_tenants = User.query.filter_by(
+            account_type='Tenant', 
+            currently_rented=False
+        ).all()
+        
+        tenants_data = []
+        for tenant in available_tenants:
+            tenant_info = {
+                "unique_id": tenant.unique_id,
+                "username": tenant.username,
+                "email": tenant.email,
+                "contact_no": tenant.contact_no,
+                "currently_rented": tenant.currently_rented,
+                "created_at": tenant.created_at.isoformat()
+            }
+            tenants_data.append(tenant_info)
 
-    # 2. Confirm OTP
-    print(f"\n📩 An OTP has been sent to {selected_tenant['email']}")
-    for attempt in range(3):
-        entered = input("Enter OTP to confirm assignment: ").strip()
-        if entered == otp:
-            selected_tenant["currently_rented"] = True
-            listing_data["rented_to"] = selected_tenant["email"]
+        return {"status": "success", "available_tenants": tenants_data}, 200
 
-            # Save updated flat
-            listings_dir = os.path.join("users", user_unique_id, "listings")
-            with open(os.path.join(listings_dir, listing_file), "w") as f:
-                json.dump(listing_data, f, indent=4)
-
-            # Save tenant updates
-            save_rented_tenant(selected_tenant)
-            update_unrented_list(selected_tenant["email"])
-
-            print(f"\n✅ Flat '{listing_data['title']}' rented to {selected_tenant['username']} ({selected_tenant['email']})")
-            return
-        else:
-            print(f"❌ Incorrect OTP. Attempts left: {2 - attempt}")
-
-    print("❌ OTP verification failed. Assignment not completed.")
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to list available tenants: {str(e)}"}, 500

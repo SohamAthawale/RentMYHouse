@@ -1,195 +1,228 @@
+# Authentication Module for Rental Management System
+
+from datetime import datetime
 import uuid
-import os
-import json
-import hashlib
-import random
-import smtplib
-from email.mime.text import MIMEText
-from ownerreqests import create_flat_listing , rent_out_flat_flow
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User
 
-# -------------------- EMAIL VERIFICATION SETUP --------------------
-SENDER_EMAIL = "rentmyhouseco@gmail.com" # Replace with your Gmail address
-SENDER_PASSWORD = "tetr smma xirk hfzc"  # Replace with App Password (from Google)
-
-def generate_otp():
-    return str(random.randint(100000, 999999))
-
-def send_verification_email(receiver_email, otp):
-    app_name = "RentMyHouse"  # ← Change this to your actual app name
-
-    subject = f"[{app_name}] Email Verification OTP"
-    body = (
-        f"Hello,\n\n"
-        f"You are signing up on {app_name}. To verify your email address, please use the OTP below:\n\n"
-        f"OTP: {otp}\n\n"
-        f"If you did not request this, please ignore this email.\n\n"
-        f"Regards,\n"
-        f"{app_name} Team"
-    )
-
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = SENDER_EMAIL
-    msg["To"] = receiver_email
-
+def signup_user(email, username, password, account_type, contact_no):
+    """
+    Create a new user account with unique_id generation.
+    
+    Args:
+        email (str): User's email address
+        username (str): User's chosen username
+        password (str): Plain text password (will be hashed)
+        account_type (str): 'Owner' or 'Tenant'
+        contact_no (str): User's contact number
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.send_message(msg)
-        return True
+        # Check if user already exists
+        if User.query.filter_by(email=email).first():
+            return {"status": "fail", "message": "User with this email already exists"}, 409
+        
+        if User.query.filter_by(username=username).first():
+            return {"status": "fail", "message": "Username already taken"}, 409
+
+        # Validate account type
+        if account_type not in ['Owner', 'Tenant']:
+            return {"status": "fail", "message": "Account type must be 'Owner' or 'Tenant'"}, 400
+
+        # Generate unique_id with format: prefix-username-randomhex
+        prefix = '0' if account_type == 'Owner' else '1'
+        unique_id = f"{prefix}-{username}-{uuid.uuid4().hex[:8]}"
+        
+        # Ensure unique_id is truly unique (unlikely collision, but safety first)
+        while User.query.filter_by(unique_id=unique_id).first():
+            unique_id = f"{prefix}-{username}-{uuid.uuid4().hex[:8]}"
+
+        # Create new user
+        user = User(
+            unique_id=unique_id,
+            email=email.lower().strip(),
+            username=username.strip(),
+            account_type=account_type,
+            password_hash=generate_password_hash(password),
+            contact_no=contact_no.strip(),
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+
+        return {
+            "status": "success", 
+            "message": f"{account_type} account created successfully",
+            "user_id": unique_id,
+            "username": username,
+            "account_type": account_type
+        }, 201
+
     except Exception as e:
-        print("Failed to send verification email:", e)
-        return False
+        db.session.rollback()
+        return {"status": "fail", "message": f"Registration failed: {str(e)}"}, 500
 
-def verify_email_flow(email):
-    otp = generate_otp()
-    if send_verification_email(email, otp):
-        print(f"An OTP has been sent to {email}")
-        for attempt in range(3):
-            entered = input("Enter the OTP: ").strip()
-            if entered == otp:
-                print("Email verified successfully.")
-                return True
-            else:
-                print(f"Incorrect OTP. Attempts left: {2 - attempt}")
-    print("Email verification failed.")
-    return False
+def login_user(email, password):
+    """
+    Authenticate user with email and password.
+    
+    Args:
+        email (str): User's email address
+        password (str): Plain text password
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        # Find user by email
+        user = User.query.filter_by(email=email.lower().strip()).first()
+        
+        if not user:
+            return {"status": "fail", "message": "Invalid email or password"}, 401
+        
+        # Check password
+        if not check_password_hash(user.password_hash, password):
+            return {"status": "fail", "message": "Invalid email or password"}, 401
 
-# -------------------- PASSWORD HASHING --------------------
+        return {
+            "status": "success",
+            "message": "Login successful",
+            "user_id": user.unique_id,
+            "username": user.username,
+            "account_type": user.account_type,
+            "currently_rented": user.currently_rented
+        }, 200
 
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+    except Exception as e:
+        return {"status": "fail", "message": f"Login failed: {str(e)}"}, 500
 
-# -------------------- CHECK IF USER EXISTS --------------------
+def get_user_profile(unique_id):
+    """
+    Get user profile information by unique_id.
+    
+    Args:
+        unique_id (str): User's unique identifier
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        user = User.query.filter_by(unique_id=unique_id).first()
+        
+        if not user:
+            return {"status": "fail", "message": "User not found"}, 404
 
-def user_exists(email):
-    users_dir = "users"
-    if os.path.exists(users_dir):
-        for folder in os.listdir(users_dir):
-            info_path = os.path.join(users_dir, folder, "info.json")
-            if os.path.exists(info_path):
-                with open(info_path, "r") as f:
-                    user_data = json.load(f)
-                    if user_data.get("email") == email:
-                        return folder
-    return None
+        # Count user's properties and active rentals
+        flats_owned_count = user.flats_owned.count() if user.account_type == 'Owner' else 0
+        active_rental = user.flats_rented.first() if user.account_type == 'Tenant' else None
+        
+        profile_data = {
+            "unique_id": user.unique_id,
+            "username": user.username,
+            "email": user.email,
+            "account_type": user.account_type,
+            "contact_no": user.contact_no,
+            "currently_rented": user.currently_rented,
+            "created_at": user.created_at.isoformat(),
+            "stats": {
+                "flats_owned": flats_owned_count,
+                "active_rental": active_rental.flat_unique_id if active_rental else None
+            }
+        }
 
-# -------------------- SIGNUP --------------------
+        return {"status": "success", "profile": profile_data}, 200
 
-def signup(logintype, email):
-    folder = user_exists(email)  # <<< FIXED LINE
-    if folder:
-        print("User already exists. Please login instead.")
-        return
+    except Exception as e:
+        return {"status": "fail", "message": f"Failed to get profile: {str(e)}"}, 500
 
-    if not verify_email_flow(email):  # <<< FIXED LINE
-        print("Email verification failed. Signup cancelled.")
-        return
+def change_password(unique_id, current_password, new_password):
+    """
+    Change user's password.
+    
+    Args:
+        unique_id (str): User's unique identifier
+        current_password (str): Current password for verification
+        new_password (str): New password to set
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        user = User.query.filter_by(unique_id=unique_id).first()
+        
+        if not user:
+            return {"status": "fail", "message": "User not found"}, 404
+        
+        # Verify current password
+        if not check_password_hash(user.password_hash, current_password):
+            return {"status": "fail", "message": "Current password is incorrect"}, 401
+        
+        # Validate new password
+        if len(new_password) < 6:
+            return {"status": "fail", "message": "New password must be at least 6 characters long"}, 400
+        
+        # Update password
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
 
-    username = input("Set your username: ").strip()
-    while True:
-        password = input("Set your password: ").strip()
-        confirm_password = input("Confirm your password: ").strip()
-        if password == confirm_password:
-            break
-        print("Passwords do not match. Please try again.")
+        return {"status": "success", "message": "Password changed successfully"}, 200
 
-    unique_id = f"{logintype}-{username}-{uuid.uuid4().hex[:8]}"
-    user_dir = os.path.join("users", unique_id)
-    os.makedirs(user_dir, exist_ok=True)
+    except Exception as e:
+        db.session.rollback()
+        return {"status": "fail", "message": f"Failed to change password: {str(e)}"}, 500
 
-    user_data = {
-        "account_type": "Owner" if logintype == "0" else "Tenant",
-        "email": email,
-        "username": username,
-        "unique_id": unique_id,
-        "password_hash": hash_password(password)
-    }
+def update_profile(unique_id, username=None, contact_no=None):
+    """
+    Update user profile information.
+    
+    Args:
+        unique_id (str): User's unique identifier
+        username (str, optional): New username
+        contact_no (str, optional): New contact number
+    
+    Returns:
+        tuple: (response_dict, status_code)
+    """
+    try:
+        user = User.query.filter_by(unique_id=unique_id).first()
+        
+        if not user:
+            return {"status": "fail", "message": "User not found"}, 404
+        
+        updated_fields = []
+        
+        # Update username if provided
+        if username and username.strip() != user.username:
+            # Check if username is already taken
+            if User.query.filter_by(username=username.strip()).first():
+                return {"status": "fail", "message": "Username already taken"}, 409
+            user.username = username.strip()
+            updated_fields.append("username")
+        
+        # Update contact number if provided
+        if contact_no and contact_no.strip() != user.contact_no:
+            user.contact_no = contact_no.strip()
+            updated_fields.append("contact number")
+        
+        if not updated_fields:
+            return {"status": "success", "message": "No changes made"}, 200
+        
+        db.session.commit()
+        
+        return {
+            "status": "success", 
+            "message": f"Updated {', '.join(updated_fields)} successfully",
+            "profile": {
+                "unique_id": user.unique_id,
+                "username": user.username,
+                "email": user.email,
+                "contact_no": user.contact_no
+            }
+        }, 200
 
-    # -------- TENANT SPECIFIC QUESTION --------
-    if logintype == "1":
-        rented_status = input("Are you currently renting a flat? (yes/no): ").strip().lower()
-        user_data["currently_rented"] = rented_status == "yes"
-
-        # Choose correct file
-        tenant_file = "tenants_rented.json" if user_data["currently_rented"] else "tenants_unrented.json"
-        if os.path.exists(tenant_file):
-            with open(tenant_file, "r") as f:
-                tenant_list = json.load(f)
-        else:
-            tenant_list = []
-
-        tenant_list.append(user_data)
-        with open(tenant_file, "w") as f:
-            json.dump(tenant_list, f, indent=4)
-
-    # -------- Save user in their own directory --------
-    with open(os.path.join(user_dir, "info.json"), "w") as f:
-        json.dump(user_data, f, indent=4)
-
-    # -------- Update global users.json --------
-    users_json = "users.json"
-    if os.path.exists(users_json):
-        with open(users_json, "r") as f:
-            users = json.load(f)
-    else:
-        users = []
-
-    users.append(user_data)
-    with open(users_json, "w") as f:
-        json.dump(users, f, indent=4)
-
-    print(f"Sign up successful! Your unique ID is: {unique_id}")
-
-# -------------------- LOGIN --------------------
-
-def login(logintype, email):
-    folder = user_exists(email)
-    if not folder:
-        print("User does not exist. Please sign up.")
-        return None
-
-    password = input("Password: ").strip()
-    user_dir = os.path.join("users", folder)
-    info_path = os.path.join(user_dir, "info.json")
-
-    if os.path.exists(info_path):
-        with open(info_path, "r") as f:
-            user_data = json.load(f)
-            if user_data.get("account_type") != ("Owner" if logintype == "0" else "Tenant"):
-                print("Account type does not match.")
-                return None
-            if user_data.get("password_hash") == hash_password(password):
-                print(f"Welcome back! Your unique ID is: {folder}")
-                return folder
-
-    print("Incorrect password or account type.")
-    return None
-
-# -------------------- MAIN PROMPT --------------------
-
-def main():
-    action = input("Do you want to Login or Sign Up? (login/signup): ").strip().lower()
-    logintype = input("Account Type (0 for Owner, 1 for Tenant): ").strip()
-    email = input("Email: ").strip()
-
-    if logintype not in ["0", "1"]:
-        print("Invalid account type.")
-        return
-
-    if action == "signup":
-        signup(logintype, email)
-    elif action == "login":
-        user_unique_id = login(logintype, email)
-        if user_unique_id:
-            next_action = input("Do you want to add a new listing? (yes/no): ").strip().lower()
-            if next_action == "yes":
-                create_flat_listing(user_unique_id)
-            else:
-                rent_out_flat_flow(user_unique_id)
-
-    else:
-        print("Invalid action.")
-
-if __name__ == "__main__":
-    main()
+    except Exception as e:
+        db.session.rollback()
+        return {"status": "fail", "message": f"Failed to update profile: {str(e)}"}, 500

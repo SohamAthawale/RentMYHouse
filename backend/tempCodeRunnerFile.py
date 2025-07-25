@@ -1,1 +1,0 @@
-tetr smma xirk hfzc
