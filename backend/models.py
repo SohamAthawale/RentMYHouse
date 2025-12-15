@@ -1,5 +1,4 @@
-# Complete SQLAlchemy Models for Rental Management System
-
+# models.py
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import uuid
@@ -19,14 +18,14 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     contact_no = db.Column(db.String(15), nullable=False)
 
-    # Relationships using unique_id foreign keys
+    # Relationships (use selectin for collection relationships to avoid lazy recursion)
     flats_owned = db.relationship(
         'Flat',
         back_populates='owner',
         primaryjoin="User.unique_id == Flat.owner_unique_id",
         foreign_keys="Flat.owner_unique_id",
         cascade="all, delete-orphan",
-        lazy='dynamic'
+        lazy='selectin'
     )
     
     flats_rented = db.relationship(
@@ -34,7 +33,7 @@ class User(db.Model):
         back_populates='tenant',
         primaryjoin="User.unique_id == Flat.rented_to_unique_id",
         foreign_keys="Flat.rented_to_unique_id",
-        lazy='dynamic'
+        lazy='selectin'
     )
     
     service_requests_as_tenant = db.relationship(
@@ -42,7 +41,7 @@ class User(db.Model):
         back_populates='tenant',
         primaryjoin="User.unique_id == ServiceRequest.tenant_unique_id",
         foreign_keys="ServiceRequest.tenant_unique_id",
-        lazy='dynamic'
+        lazy='selectin'
     )
     
     service_requests_as_owner = db.relationship(
@@ -50,7 +49,7 @@ class User(db.Model):
         back_populates='owner',
         primaryjoin="User.unique_id == ServiceRequest.owner_unique_id",
         foreign_keys="ServiceRequest.owner_unique_id",
-        lazy='dynamic'
+        lazy='selectin'
     )
     
     rent_payments_as_tenant = db.relationship(
@@ -58,7 +57,7 @@ class User(db.Model):
         back_populates='tenant',
         primaryjoin="User.unique_id == RentPayment.tenant_unique_id",
         foreign_keys="RentPayment.tenant_unique_id",
-        lazy='dynamic'
+        lazy='selectin'
     )
     
     rent_payments_as_owner = db.relationship(
@@ -66,57 +65,75 @@ class User(db.Model):
         back_populates='owner',
         primaryjoin="User.unique_id == RentPayment.owner_unique_id",
         foreign_keys="RentPayment.owner_unique_id",
-        lazy='dynamic'
+        lazy='selectin'
     )
 
+# ------------------ Flat model (flat_unique_id is primary key) ------------------
 class Flat(db.Model):
     __tablename__ = 'flats'
     
-    id = db.Column(db.Integer, primary_key=True)
-    flat_unique_id = db.Column(db.String(100), unique=True, nullable=False, default=lambda: f"flat-{uuid.uuid4().hex[:8]}")
-    owner_unique_id = db.Column(db.String(100), db.ForeignKey('users.unique_id', ondelete='CASCADE'), nullable=False)
+    flat_unique_id = db.Column(
+        db.String(100),
+        primary_key=True,
+        default=lambda: f"flat-{uuid.uuid4().hex[:8]}"
+    )
+
+    owner_unique_id = db.Column(
+        db.String(100),
+        db.ForeignKey('users.unique_id', ondelete='CASCADE'),
+        nullable=False
+    )
+
     title = db.Column(db.String(200), nullable=False)
     address = db.Column(db.Text, nullable=False)
     rent = db.Column(db.Numeric(10, 2), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    rented_to_unique_id = db.Column(db.String(100), db.ForeignKey('users.unique_id', ondelete='SET NULL'))
+
+    rented_to_unique_id = db.Column(
+        db.String(100),
+        db.ForeignKey('users.unique_id', ondelete='SET NULL'),
+        nullable=True
+    )
 
     # Relationships
     owner = db.relationship(
         'User',
         back_populates='flats_owned',
         primaryjoin="Flat.owner_unique_id == User.unique_id",
-        foreign_keys=[owner_unique_id]
+        foreign_keys=[owner_unique_id],
+        lazy='joined'
     )
-    
+
     tenant = db.relationship(
         'User',
         back_populates='flats_rented',
         primaryjoin="Flat.rented_to_unique_id == User.unique_id",
-        foreign_keys=[rented_to_unique_id]
+        foreign_keys=[rented_to_unique_id],
+        lazy='joined'
     )
-    
+
     service_requests = db.relationship(
         'ServiceRequest',
         back_populates='flat',
         cascade="all, delete-orphan",
-        lazy='dynamic'
+        lazy='selectin'
     )
-    
+
     rent_payments = db.relationship(
         'RentPayment',
         back_populates='flat',
         cascade="all, delete-orphan",
-        lazy='dynamic'
+        lazy='selectin'
     )
-    
+
     service_expenses = db.relationship(
         'ServiceExpense',
         back_populates='flat',
         cascade="all, delete-orphan",
-        lazy='dynamic'
+        lazy='selectin'
     )
 
+# ------------------ ServiceRequest model (eager relationships) ------------------
 class ServiceRequest(db.Model):
     __tablename__ = 'service_requests'
     
@@ -127,9 +144,9 @@ class ServiceRequest(db.Model):
     owner_unique_id = db.Column(db.String(100), db.ForeignKey('users.unique_id', ondelete='CASCADE'), nullable=False)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    category = db.Column(db.String(50), nullable=False)  # Plumbing, Electrical, HVAC, etc.
-    priority = db.Column(db.String(20), nullable=False, default='Medium')  # Low, Medium, High, Emergency
-    status = db.Column(db.String(20), nullable=False, default='Open')  # Open, In Progress, Completed, Cancelled
+    category = db.Column(db.String(50), nullable=False)
+    priority = db.Column(db.String(20), nullable=False, default='Medium')
+    status = db.Column(db.String(20), nullable=False, default='Open')
     requested_at = db.Column(db.DateTime, default=datetime.utcnow)
     assigned_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
@@ -139,30 +156,37 @@ class ServiceRequest(db.Model):
     contractor_contact = db.Column(db.String(15))
     tenant_notes = db.Column(db.Text)
     owner_notes = db.Column(db.Text)
-    tenant_rating = db.Column(db.Integer)  # 1-5 rating
+    tenant_rating = db.Column(db.Integer)
 
-    # Relationships
-    flat = db.relationship('Flat', back_populates='service_requests')
+    # Eager relationships to avoid circular lazy loading
+    flat = db.relationship(
+        'Flat',
+        back_populates='service_requests',
+        lazy='joined'
+    )
     tenant = db.relationship(
         'User',
         back_populates='service_requests_as_tenant',
         primaryjoin="ServiceRequest.tenant_unique_id == User.unique_id",
-        foreign_keys=[tenant_unique_id]
+        foreign_keys=[tenant_unique_id],
+        lazy='joined'
     )
     owner = db.relationship(
         'User',
         back_populates='service_requests_as_owner',
         primaryjoin="ServiceRequest.owner_unique_id == User.unique_id",
-        foreign_keys=[owner_unique_id]
+        foreign_keys=[owner_unique_id],
+        lazy='joined'
     )
     
     expenses = db.relationship(
         'ServiceExpense',
         back_populates='service_request',
         cascade="all, delete-orphan",
-        lazy='dynamic'
+        lazy='selectin'
     )
 
+# ------------------ ServiceExpense model ------------------
 class ServiceExpense(db.Model):
     __tablename__ = 'service_expenses'
     
@@ -182,14 +206,16 @@ class ServiceExpense(db.Model):
     notes = db.Column(db.Text)
 
     # Relationships
-    service_request = db.relationship('ServiceRequest', back_populates='expenses')
-    flat = db.relationship('Flat', back_populates='service_expenses')
+    service_request = db.relationship('ServiceRequest', back_populates='expenses', lazy='joined')
+    flat = db.relationship('Flat', back_populates='service_expenses', lazy='joined')
     owner = db.relationship(
         'User',
         primaryjoin="ServiceExpense.owner_unique_id == User.unique_id",
-        foreign_keys=[owner_unique_id]
+        foreign_keys=[owner_unique_id],
+        lazy='joined'
     )
 
+# ------------------ RentPayment model ------------------
 class RentPayment(db.Model):
     __tablename__ = 'rent_payments'
     
@@ -208,16 +234,18 @@ class RentPayment(db.Model):
     notes = db.Column(db.Text)
 
     # Relationships
-    flat = db.relationship('Flat', back_populates='rent_payments')
+    flat = db.relationship('Flat', back_populates='rent_payments', lazy='joined')
     tenant = db.relationship(
         'User',
         back_populates='rent_payments_as_tenant',
         primaryjoin="RentPayment.tenant_unique_id == User.unique_id",
-        foreign_keys=[tenant_unique_id]
+        foreign_keys=[tenant_unique_id],
+        lazy='joined'
     )
     owner = db.relationship(
         'User',
         back_populates='rent_payments_as_owner',
         primaryjoin="RentPayment.owner_unique_id == User.unique_id",
-        foreign_keys=[owner_unique_id]
+        foreign_keys=[owner_unique_id],
+        lazy='joined'
     )

@@ -90,6 +90,7 @@ def login_user(email, password):
         return {
             "status": "success",
             "message": "Login successful",
+            "unique_id": user.unique_id,
             "user_id": user.unique_id,
             "username": user.username,
             "account_type": user.account_type,
