@@ -154,6 +154,3 @@ The frontend connects to a Flask backend at `http://localhost:5001`. All API end
 - Safari (latest)
 - Edge (latest)
 
-## License
-
-MIT
