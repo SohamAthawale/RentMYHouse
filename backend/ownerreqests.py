@@ -7,53 +7,55 @@ from utilities import send_email
 from models import OTPVerification, db, User, Flat, RentPayment
 from newlogin import _create_and_email_otp
 from utilities import send_email
-def create_flat(owner_unique_id, title, address, rent):
+def create_flat(
+    owner_unique_id,
+    title,
+    address,
+    rent,
+    bedrooms=None,
+    bathrooms=None,
+    area_sqft=None,
+    furnishing=None,
+    property_type=None
+):
     """
     Create a new flat listing by an owner.
-    
-    Args:
-        owner_unique_id (str): Owner's unique identifier
-        title (str): Flat title/name
-        address (str): Flat address
-        rent (float): Monthly rent amount
-    
-    Returns:
-        tuple: (response_dict, status_code)
     """
     try:
-        # Verify owner exists and is an owner
         owner = User.query.filter_by(unique_id=owner_unique_id).first()
         if not owner:
             return {"status": "fail", "message": "Owner not found"}, 404
-        
+
         if owner.account_type != 'Owner':
             return {"status": "fail", "message": "Only owners can create flat listings"}, 403
 
-        # Validate input data
         if not title or not title.strip():
             return {"status": "fail", "message": "Flat title is required"}, 400
-        
+
         if not address or not address.strip():
             return {"status": "fail", "message": "Flat address is required"}, 400
-        
+
         if not rent or rent <= 0:
             return {"status": "fail", "message": "Valid rent amount is required"}, 400
 
-        # Generate unique flat_unique_id
         flat_unique_id = f"flat-{uuid.uuid4().hex[:12]}"
         while Flat.query.filter_by(flat_unique_id=flat_unique_id).first():
             flat_unique_id = f"flat-{uuid.uuid4().hex[:12]}"
 
-        # Create new flat
         flat = Flat(
             flat_unique_id=flat_unique_id,
             owner_unique_id=owner_unique_id,
             title=title.strip(),
             address=address.strip(),
             rent=Decimal(str(rent)),
+            bedrooms=bedrooms,
+            bathrooms=bathrooms,
+            area_sqft=area_sqft,
+            furnishing=furnishing,
+            property_type=property_type,
             created_at=datetime.utcnow()
         )
-        
+
         db.session.add(flat)
         db.session.commit()
 
@@ -65,13 +67,22 @@ def create_flat(owner_unique_id, title, address, rent):
                 "title": flat.title,
                 "address": flat.address,
                 "rent": str(flat.rent),
+                "bedrooms": flat.bedrooms,
+                "bathrooms": flat.bathrooms,
+                "area_sqft": flat.area_sqft,
+                "furnishing": flat.furnishing,
+                "property_type": flat.property_type,
                 "owner_username": owner.username
             }
         }, 201
 
     except Exception as e:
         db.session.rollback()
-        return {"status": "fail", "message": f"Failed to create flat: {str(e)}"}, 500
+        return {
+            "status": "fail",
+            "message": f"Failed to create flat: {str(e)}"
+        }, 500
+
 
 def list_flats():
     """
@@ -86,23 +97,32 @@ def list_flats():
         
         for flat in flats:
             flat_info = {
-                "flat_unique_id": flat.flat_unique_id,
-                "title": flat.title,
-                "address": flat.address,
-                "rent": str(flat.rent),
-                "created_at": flat.created_at.isoformat(),
-                "owner": {
-                    "unique_id": flat.owner.unique_id,
-                    "username": flat.owner.username,
-                    "contact_no": flat.owner.contact_no
-                } if flat.owner else None,
-                "tenant": {
-                    "unique_id": flat.tenant.unique_id,
-                    "username": flat.tenant.username,
-                    "contact_no": flat.tenant.contact_no
-                } if flat.tenant else None,
-                "is_rented": flat.rented_to_unique_id is not None
+            "flat_unique_id": flat.flat_unique_id,
+            "title": flat.title,
+            "address": flat.address,
+            "rent": str(flat.rent),
+
+            # 🔹 NEW ML-READY PROPERTY FEATURES
+            "bedrooms": flat.bedrooms,
+            "bathrooms": flat.bathrooms,
+            "area_sqft": flat.area_sqft,
+            "furnishing": flat.furnishing,
+            "property_type": flat.property_type,
+
+            "created_at": flat.created_at.isoformat(),
+            "owner": {
+                "unique_id": flat.owner.unique_id,
+                "username": flat.owner.username,
+                "contact_no": flat.owner.contact_no
+            } if flat.owner else None,
+            "tenant": {
+                "unique_id": flat.tenant.unique_id,
+                "username": flat.tenant.username,
+                "contact_no": flat.tenant.contact_no
+            } if flat.tenant else None,
+            "is_rented": flat.rented_to_unique_id is not None
             }
+
             flats_data.append(flat_info)
 
         return {"status": "success", "flats": flats_data}, 200
@@ -145,6 +165,14 @@ def get_owner_flats(owner_unique_id):
                 "title": flat.title,
                 "address": flat.address,
                 "rent": str(flat.rent),
+
+                # 🔹 ML-READY PROPERTY FEATURES
+                "bedrooms": flat.bedrooms,
+                "bathrooms": flat.bathrooms,
+                "area_sqft": flat.area_sqft,
+                "furnishing": flat.furnishing,
+                "property_type": flat.property_type,
+
                 "created_at": flat.created_at.isoformat(),
                 "is_rented": is_rented,
                 "tenant": {
@@ -153,6 +181,7 @@ def get_owner_flats(owner_unique_id):
                     "contact_no": flat.tenant.contact_no
                 } if flat.tenant else None
             }
+
             flats_data.append(flat_info)
 
         return {

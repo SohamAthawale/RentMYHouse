@@ -111,3 +111,8 @@ export const adminAPI = {
   deleteUser: (id) =>
     api.delete(`/delete-user/${id}`),
 };
+/* ---------------- RENT PREDICTOR (ML) ---------------- */
+export const rentPredictorAPI = {
+  predict: (data) => api.post('/predict-rent', data),
+};
+

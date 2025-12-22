@@ -1,49 +1,112 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { flatsAPI } from '../../api/endpoints';
-import { Home, MapPin, DollarSign, User } from 'lucide-react';
-import Loader from '../../components/Loader';
+import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { flatsAPI } from "../../api/endpoints";
+import { Home, MapPin, DollarSign, User } from "lucide-react";
+import Loader from "../../components/Loader";
 
 export default function MyFlat() {
   const { user } = useAuth();
+
   const [flat, setFlat] = useState(null);
+  const [prediction, setPrediction] = useState(null);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchFlat();
   }, []);
 
+  // --------------------------------------------------
+  // Fetch tenant's flat
+  // --------------------------------------------------
   const fetchFlat = async () => {
     try {
       const response = await flatsAPI.listFlats();
+      const flats = response.data?.flats || [];
 
-      // Backend returns { flats: [...] }
-      const flats = response.data.flats || [];
-
-      // Transform backend → UI expected fields
-      const formattedFlats = flats.map(f => ({
+      const formattedFlats = flats.map((f) => ({
         flat_unique_id: f.flat_unique_id,
-        flat_name: f.title,
-        location: f.address,
-        rent_amount: f.rent,
-        is_rented: f.is_rented,
-        tenant_unique_id: f.tenant?.unique_id,
-        owner_name: f.owner?.username || "N/A",
+        flat_name: f.title || "Unnamed Flat",
+        location: f.address || "Unknown",
+        rent_amount: f.rent ?? null,
+        is_rented: Boolean(f.is_rented),
+        tenant_unique_id: f.tenant?.unique_id ?? null,
+        owner_name: f.owner?.username ?? "N/A",
+
+        // Property features
+        bedrooms: f.bedrooms ?? null,
+        bathrooms: f.bathrooms ?? null,
+        area_sqft: f.area_sqft ?? null,
+        furnishing: f.furnishing ?? "Unfurnished",
+        property_type: f.property_type ?? "Apartment",
       }));
 
-      // Find the flat assigned to this tenant
       const myFlat = formattedFlats.find(
-        f => f.is_rented && f.tenant_unique_id === user.unique_id
+        (f) => f.is_rented && f.tenant_unique_id === user.unique_id
       );
 
-      setFlat(myFlat);
-    } catch (error) {
-      console.error("Error fetching flat:", error);
+      setFlat(myFlat || null);
+
+      if (myFlat) {
+        fetchPrediction(myFlat);
+      }
+    } catch (err) {
+      console.error("Error fetching flat:", err);
+      setFlat(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // --------------------------------------------------
+  // Fetch AI rent prediction
+  // --------------------------------------------------
+ const fetchPrediction = async (flat) => {
+  try {
+    const payload = {
+      address: flat.location,
+      bedrooms: Number(flat.bedrooms),
+      bathrooms: Number(flat.bathrooms),
+      area_sqft: Number(flat.area_sqft),
+      furnishing: flat.furnishing,
+      property_type: flat.property_type,
+    };
+
+    const res = await fetch("http://127.0.0.1:5001/predict-rent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (res.ok) setPrediction(data);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+  // --------------------------------------------------
+  // Deal quality logic
+  // --------------------------------------------------
+  const getDealQuality = () => {
+    if (!prediction || !flat?.rent_amount) return null;
+
+    const actual = Number(flat.rent_amount);
+    const predicted = prediction.predicted_rent;
+
+    if (actual <= predicted * 0.9) {
+      return { label: "Good Deal", color: "bg-green-100 text-green-800" };
+    }
+    if (actual >= predicted * 1.1) {
+      return { label: "Overpriced", color: "bg-red-100 text-red-800" };
+    }
+    return { label: "Fair Price", color: "bg-yellow-100 text-yellow-800" };
+  };
+
+  // --------------------------------------------------
+  // UI STATES
+  // --------------------------------------------------
   if (loading) return <Loader />;
 
   if (!flat) {
@@ -52,13 +115,20 @@ export default function MyFlat() {
         <h1 className="text-3xl font-bold text-gray-800 mb-6">My Flat</h1>
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <Home size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Flat Assigned</h3>
-          <p className="text-gray-500">You are not currently assigned to any flat</p>
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            No Flat Assigned
+          </h3>
+          <p className="text-gray-500">
+            You are not currently assigned to any flat
+          </p>
         </div>
       </div>
     );
   }
 
+  // --------------------------------------------------
+  // MAIN UI
+  // --------------------------------------------------
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-800 mb-6">My Flat</h1>
@@ -75,32 +145,51 @@ export default function MyFlat() {
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div className="flex items-center gap-3">
-                <MapPin className="text-gray-400" size={20} />
-                <div>
-                  <p className="text-sm text-gray-500">Location</p>
-                  <p className="text-gray-800 font-medium">{flat.location}</p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-3">
-                <DollarSign className="text-gray-400" size={20} />
-                <div>
-                  <p className="text-sm text-gray-500">Monthly Rent</p>
-                  <p className="text-gray-800 font-medium">${flat.rent_amount}</p>
-                </div>
-              </div>
+              {/* Location */}
+              <InfoItem
+                icon={<MapPin size={20} className="text-gray-400" />}
+                label="Location"
+                value={flat.location}
+              />
 
-              <div className="flex items-center gap-3">
-                <User className="text-gray-400" size={20} />
-                <div>
-                  <p className="text-sm text-gray-500">Owner</p>
-                  <p className="text-gray-800 font-medium">{flat.owner_name}</p>
-                </div>
-              </div>
+              {/* Rent */}
+              <InfoItem
+                icon={<DollarSign size={20} className="text-gray-400" />}
+                label="Monthly Rent"
+                value={
+                  flat.rent_amount
+                    ? `₹${Number(flat.rent_amount).toLocaleString("en-IN")}`
+                    : "Not available"
+                }
+              />
 
+              {/* Property details */}
+              <InfoItem
+                icon={<Home size={20} className="text-gray-400" />}
+                label="Property Details"
+                value={`${flat.bedrooms ?? "–"} Bed · ${
+                  flat.bathrooms ?? "–"
+                } Bath · ${flat.area_sqft ?? "–"} sqft`}
+              />
+
+              {/* Type */}
+              <InfoItem
+                icon={<Home size={20} className="text-gray-400" />}
+                label="Type"
+                value={`${flat.property_type} (${flat.furnishing})`}
+              />
+
+              {/* Owner */}
+              <InfoItem
+                icon={<User size={20} className="text-gray-400" />}
+                label="Owner"
+                value={flat.owner_name}
+              />
+
+              {/* Status */}
               <div className="flex items-center gap-3">
-                <Home className="text-gray-400" size={20} />
+                <Home size={20} className="text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
                   <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
@@ -108,11 +197,47 @@ export default function MyFlat() {
                   </span>
                 </div>
               </div>
+
+              {/* AI Prediction */}
+              {prediction && (
+                <div className="flex items-center gap-3">
+                  <DollarSign size={20} className="text-gray-400" />
+                  <div>
+                    <p className="text-sm text-gray-500">AI Price Check</p>
+                    <p className="text-gray-800 font-medium">
+                      Estimated: ₹
+                      {prediction.predicted_rent.toLocaleString("en-IN")}
+                    </p>
+                    <span
+                      className={`inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium ${
+                        getDealQuality()?.color
+                      }`}
+                    >
+                      {getDealQuality()?.label}
+                    </span>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
+// --------------------------------------------------
+// Small reusable UI component
+// --------------------------------------------------
+function InfoItem({ icon, label, value }) {
+  return (
+    <div className="flex items-center gap-3">
+      {icon}
+      <div>
+        <p className="text-sm text-gray-500">{label}</p>
+        <p className="text-gray-800 font-medium">{value}</p>
+      </div>
     </div>
   );
 }

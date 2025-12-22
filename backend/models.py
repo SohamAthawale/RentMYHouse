@@ -125,64 +125,85 @@ class Flat(db.Model):
     __tablename__ = "flats"
 
     id = db.Column(db.Integer, primary_key=True)
+
     flat_unique_id = db.Column(
         db.String(100),
         unique=True,
         nullable=False,
         default=lambda: f"flat-{uuid.uuid4().hex[:8]}",
     )
+
     owner_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("users.unique_id", ondelete="CASCADE"),
         nullable=False,
     )
+
     title = db.Column(db.String(200), nullable=False)
     address = db.Column(db.Text, nullable=False)
+
     rent = db.Column(db.Numeric(10, 2), nullable=False)
+
+    # 🔹 ML-READY PROPERTY FEATURES (ADDED)
+    bedrooms = db.Column(db.Integer)
+    bathrooms = db.Column(db.Integer)
+    area_sqft = db.Column(db.Integer)
+    furnishing = db.Column(db.String(20))
+    property_type = db.Column(db.String(20))
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     rented_to_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("users.unique_id", ondelete="SET NULL"),
     )
 
-    # Relationships
+    rented_date = db.Column(db.DateTime)
+    deposit_amount = db.Column(db.Numeric(10, 2), default=0)
+
+    # ---------------- RELATIONSHIPS ----------------
+
     owner = db.relationship(
         "User",
         back_populates="flats_owned",
         primaryjoin="Flat.owner_unique_id == User.unique_id",
         foreign_keys=[owner_unique_id],
     )
+
     tenant = db.relationship(
         "User",
         back_populates="flats_rented",
         primaryjoin="Flat.rented_to_unique_id == User.unique_id",
         foreign_keys=[rented_to_unique_id],
     )
+
     service_requests = db.relationship(
         "ServiceRequest",
         back_populates="flat",
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
+
     rent_payments = db.relationship(
         "RentPayment",
         back_populates="flat",
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
+
     service_expenses = db.relationship(
         "ServiceExpense",
         back_populates="flat",
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
+
     rent_agreements = db.relationship(
         "RentAgreement",
         back_populates="flat",
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
-
 
 # ────────────────────────────────────────────────────────────────
 # Maintenance / Service Workflow

@@ -13,6 +13,11 @@ export default function CreateFlat() {
     title: '',
     address: '',
     rent: '',
+    bedrooms: '',
+    bathrooms: '',
+    area_sqft: '',
+    furnishing: '',
+    property_type: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -21,7 +26,7 @@ export default function CreateFlat() {
     e.preventDefault();
 
     if (!formData.title || !formData.address || !formData.rent) {
-      toast.error('Please fill in all fields');
+      toast.error('Title, address and rent are required');
       return;
     }
 
@@ -37,6 +42,13 @@ export default function CreateFlat() {
         title: formData.title,
         address: formData.address,
         rent: Number(formData.rent),
+
+        // 🔹 ML-ready fields
+        bedrooms: formData.bedrooms ? Number(formData.bedrooms) : null,
+        bathrooms: formData.bathrooms ? Number(formData.bathrooms) : null,
+        area_sqft: formData.area_sqft ? Number(formData.area_sqft) : null,
+        furnishing: formData.furnishing || null,
+        property_type: formData.property_type || null,
       });
 
       toast.success('Flat created successfully!');
@@ -70,6 +82,7 @@ export default function CreateFlat() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Flat Title
@@ -85,6 +98,7 @@ export default function CreateFlat() {
               />
             </div>
 
+            {/* Address */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Address
@@ -96,10 +110,11 @@ export default function CreateFlat() {
                   setFormData({ ...formData, address: e.target.value })
                 }
                 className="w-full px-4 py-2 border rounded-lg"
-                placeholder="123 Main Street"
+                placeholder="101 Vasudev Apartment, Malad West"
               />
             </div>
 
+            {/* Rent */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Monthly Rent
@@ -112,11 +127,99 @@ export default function CreateFlat() {
                   setFormData({ ...formData, rent: e.target.value })
                 }
                 className="w-full px-4 py-2 border rounded-lg"
-                placeholder="1500"
+                placeholder="65000"
               />
             </div>
 
-            <div className="flex gap-3">
+            {/* Bedrooms & Bathrooms */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Bedrooms
+                </label>
+                <input
+                  type="number"
+                  value={formData.bedrooms}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bedrooms: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Bathrooms
+                </label>
+                <input
+                  type="number"
+                  value={formData.bathrooms}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bathrooms: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Area */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Area (sqft)
+              </label>
+              <input
+                type="number"
+                value={formData.area_sqft}
+                onChange={(e) =>
+                  setFormData({ ...formData, area_sqft: e.target.value })
+                }
+                className="w-full px-4 py-2 border rounded-lg"
+              />
+            </div>
+
+            {/* Furnishing & Property Type */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Furnishing
+                </label>
+                <select
+                  value={formData.furnishing}
+                  onChange={(e) =>
+                    setFormData({ ...formData, furnishing: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                >
+                  <option value="">Select</option>
+                  <option value="Unfurnished">Unfurnished</option>
+                  <option value="Semi-Furnished">Semi-Furnished</option>
+                  <option value="Fully Furnished">Fully Furnished</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Property Type
+                </label>
+                <select
+                  value={formData.property_type}
+                  onChange={(e) =>
+                    setFormData({ ...formData, property_type: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                >
+                  <option value="">Select</option>
+                  <option value="Apartment">Apartment</option>
+                  <option value="Villa">Villa</option>
+                  <option value="Independent House">
+                    Independent House
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
               <button
                 type="submit"
                 disabled={loading}

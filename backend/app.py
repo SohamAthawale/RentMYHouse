@@ -1,7 +1,14 @@
 # Complete Flask Application for Rental Management System
 # app.py  (add after your existing imports)
+import sys
+import os
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 from flask import Flask, request, jsonify, session
 import io
+from analytics.rent_predictor import predict_rent_logic
 from newlogin import cleanup_expired_otps_only, cleanup_unverified_accounts, request_otp, verify_otp
 from flask import Flask, request, jsonify, send_file
 from sqlalchemy import text
@@ -169,16 +176,34 @@ def create_flat_route():
         data = request.get_json()
         if not data:
             return jsonify({"status": "fail", "message": "No data provided"}), 400
-        
+
+        required_fields = ["owner_unique_id", "title", "address", "rent"]
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    "status": "fail",
+                    "message": f"{field} is required"
+                }), 400
+
         result, status_code = create_flat(
-            data.get('owner_unique_id'),
-            data.get('title'),
-            data.get('address'),
-            data.get('rent')
+            owner_unique_id=data.get("owner_unique_id"),
+            title=data.get("title"),
+            address=data.get("address"),
+            rent=data.get("rent"),
+            bedrooms=data.get("bedrooms"),
+            bathrooms=data.get("bathrooms"),
+            area_sqft=data.get("area_sqft"),
+            furnishing=data.get("furnishing"),
+            property_type=data.get("property_type")
         )
+
         return jsonify(result), status_code
+
     except Exception as e:
-        return jsonify({"status": "fail", "message": f"Flat creation failed: {str(e)}"}), 500
+        return jsonify({
+            "status": "fail",
+            "message": f"Flat creation failed: {str(e)}"
+        }), 500
 
 @app.route('/list-flats', methods=['GET'])
 def list_flats_route():
@@ -791,6 +816,13 @@ def id_consent_status(unique_id):
         "consent_given_at": user.id_document_consent_at.isoformat() if user.id_document_consent_at else None
     }), 200
 
+#======================Analytics routes=========================
+@app.route("/predict-rent", methods=["POST"])
+def predict_rent():
+    data = request.get_json()
+
+    response, status_code = predict_rent_logic(data)
+    return jsonify(response), status_code
 
 
 # ==================== APPLICATION STARTUP ====================
