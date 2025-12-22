@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { financialsAPI, flatsAPI } from '../../api/endpoints';
 import toast from 'react-hot-toast';
-import { Plus } from 'lucide-react';
+import { Plus, CheckCircle, Clock } from 'lucide-react';
 import Loader from '../../components/Loader';
 import PaymentModal from '../../components/PaymentModal';
 import ExpenseModal from '../../components/ExpenseModal';
@@ -19,9 +19,12 @@ export default function Financials() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
+  const [verifyingId, setVerifyingId] = useState(null);
+
   const [paymentData, setPaymentData] = useState({
     flat_unique_id: '',
     amount_paid: '',
+    payment_method: 'Other',
   });
 
   const [expenseData, setExpenseData] = useState({
@@ -53,7 +56,7 @@ export default function Financials() {
       setPayments(paymentsRes.data?.payments || []);
       setExpenses(expensesRes.data?.expenses || []);
     } catch (error) {
-      console.error('Error fetching financial data:', error);
+      console.error(error);
       toast.error('Failed to load financial data');
     } finally {
       setLoading(false);
@@ -65,7 +68,7 @@ export default function Financials() {
       const res = await flatsAPI.getOwnerFlats(user.unique_id);
       setFlats(res.data?.flats || []);
     } catch (error) {
-      console.error('Error fetching flats:', error);
+      console.error(error);
     }
   };
 
@@ -78,23 +81,37 @@ export default function Financials() {
     }
 
     try {
-      await financialsAPI.recordRentPayment({
+      await financialsAPI.ownerRecordRent({
         flat_unique_id: paymentData.flat_unique_id,
         amount: parseFloat(paymentData.amount_paid),
+        payment_method: paymentData.payment_method,
       });
 
       toast.success('Payment recorded successfully');
       setShowPaymentModal(false);
-
       setPaymentData({
         flat_unique_id: '',
         amount_paid: '',
+        payment_method: 'Other',
       });
-
       fetchFinancialData();
     } catch (error) {
-      console.error('Error recording payment:', error);
+      console.error(error);
       toast.error('Failed to record payment');
+    }
+  };
+
+  const handleVerifyPayment = async (paymentId) => {
+    try {
+      setVerifyingId(paymentId);
+      await financialsAPI.verifyRentPayment(paymentId);
+      toast.success('Payment verified');
+      fetchFinancialData();
+    } catch (error) {
+      console.error(error);
+      toast.error('Verification failed');
+    } finally {
+      setVerifyingId(null);
     }
   };
 
@@ -113,17 +130,15 @@ export default function Financials() {
 
       toast.success('Expense recorded successfully');
       setShowExpenseModal(false);
-
       setExpenseData({
         flat_unique_id: '',
         expense_type: '',
         amount: '',
         description: '',
       });
-
       fetchFinancialData();
     } catch (error) {
-      console.error('Error creating expense:', error);
+      console.error(error);
       toast.error('Failed to create expense');
     }
   };
@@ -134,6 +149,17 @@ export default function Financials() {
     const num = parseFloat(value);
     return isNaN(num) ? '0.00' : num.toFixed(2);
   };
+
+  const renderStatus = (status) =>
+    status === 'Paid' ? (
+      <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+        <CheckCircle size={14} /> Paid
+      </span>
+    ) : (
+      <span className="flex items-center gap-1 text-yellow-600 text-sm font-medium">
+        <Clock size={14} /> Pending
+      </span>
+    );
 
   // ---------------- UI ----------------
 
@@ -203,17 +229,31 @@ export default function Financials() {
               payments.slice(0, 5).map((p) => (
                 <div
                   key={p.payment_unique_id}
-                  className="border-b pb-3 mb-3 flex justify-between"
+                  className="border-b pb-4 mb-4 flex justify-between items-start"
                 >
-                  <div>
-                    <p className="font-medium">{p.flat?.title}</p>
+                  <div className="space-y-1">
+                    <p className="font-medium text-gray-800">{p.flat?.title}</p>
                     <p className="text-sm text-gray-500">
-                      {p.payment_date?.slice(0, 10)}
+                      {p.payment_date?.slice(0, 10)} · {p.payment_method}
                     </p>
+                    {renderStatus(p.payment_status)}
                   </div>
-                  <p className="text-green-600 font-semibold">
-                    ${formatMoney(p.amount)}
-                  </p>
+
+                  <div className="text-right space-y-2">
+                    <p className="text-green-600 font-semibold text-lg">
+                      ${formatMoney(p.amount)}
+                    </p>
+
+                    {p.payment_status === 'Pending' && (
+                      <button
+                        onClick={() => handleVerifyPayment(p.payment_unique_id)}
+                        disabled={verifyingId === p.payment_unique_id}
+                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {verifyingId === p.payment_unique_id ? 'Verifying…' : 'Verify'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))
             )}

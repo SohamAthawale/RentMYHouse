@@ -4,6 +4,8 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,13 +16,24 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  /** Called ONLY after successful login */
   const login = (userData) => {
     setUser(userData);
+    setPendingVerification(false);
+    setPendingEmail(null);
     localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  /** Called after signup if OTP is required */
+  const requireVerification = (email) => {
+    setPendingVerification(true);
+    setPendingEmail(email);
   };
 
   const logout = () => {
     setUser(null);
+    setPendingVerification(false);
+    setPendingEmail(null);
     localStorage.removeItem('user');
   };
 
@@ -30,7 +43,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        updateUser,
+        pendingVerification,
+        pendingEmail,
+        requireVerification,
+        loading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

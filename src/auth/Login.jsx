@@ -6,35 +6,66 @@ import toast from 'react-hot-toast';
 import { LogIn } from 'lucide-react';
 
 export default function Login() {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
   const [loading, setLoading] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!formData.email || !formData.password) {
       toast.error('Please fill in all fields');
       return;
     }
 
     setLoading(true);
+
     try {
-      const response = await authAPI.login(formData);
-      const userData = response.data;
+      const response = await authAPI.login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // ✅ Backend returns { status, message, user }
+      const userData = response.data.user;
 
       login(userData);
-      toast.success('Login successful!');
+      toast.success('Login successful');
 
+      // ✅ Role-based routing
       if (userData.account_type === 'Owner') {
         navigate('/owner/dashboard');
       } else if (userData.account_type === 'Tenant') {
         navigate('/tenant/dashboard');
       } else if (userData.account_type === 'Admin') {
         navigate('/admin/dashboard');
+      } else {
+        navigate('/login');
       }
+
     } catch (error) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
+
+      // 🔐 Account exists but not verified
+      if (status === 403 && message === 'Account not verified') {
+        toast.error('Please verify your email first');
+
+        navigate('/verify-otp', {
+          state: { email: formData.email },
+        });
+        return;
+      }
+
+      // ❌ Invalid credentials or other errors
+      toast.error(message || 'Login failed');
       console.error('Login error:', error);
+
     } finally {
       setLoading(false);
     }
@@ -47,8 +78,12 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <LogIn className="text-blue-600" size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your rental management account</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-gray-600">
+            Sign in to your rental management account
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -59,7 +94,9 @@ export default function Login() {
             <input
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="you@example.com"
             />
@@ -72,7 +109,9 @@ export default function Login() {
             <input
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
             />
@@ -89,8 +128,11 @@ export default function Login() {
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-600 hover:text-blue-700 font-medium">
+            Don&apos;t have an account?{' '}
+            <Link
+              to="/signup"
+              className="text-blue-600 hover:text-blue-700 font-medium"
+            >
               Sign up
             </Link>
           </p>

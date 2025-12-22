@@ -5,15 +5,28 @@ import { serviceRequestsAPI, flatsAPI } from '../../api/endpoints';
 import toast from 'react-hot-toast';
 import { ArrowLeft } from 'lucide-react';
 
+const CATEGORIES = [
+  'Plumbing',
+  'Electrical',
+  'HVAC',
+  'Appliances',
+  'General Maintenance',
+  'Emergency',
+];
+
 export default function CreateRequest() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [flat, setFlat] = useState(null);
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
-    issue_description: '',
+    title: '',
+    description: '',
+    category: 'General Maintenance',
     priority: 'Medium',
   });
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchFlat();
@@ -22,28 +35,15 @@ export default function CreateRequest() {
   const fetchFlat = async () => {
     try {
       const response = await flatsAPI.listFlats();
-
-      // Backend returns { flats: [...] }
       const flats = response.data.flats || [];
 
-      // Transform backend -> UI expected fields
-      const formattedFlats = flats.map(f => ({
-        flat_unique_id: f.flat_unique_id,
-        flat_name: f.title,
-        location: f.address,
-        rent_amount: f.rent,
-        is_rented: f.is_rented,
-        tenant_unique_id: f.tenant?.unique_id,
-      }));
-
-      // Find the flat assigned to this tenant
-      const myFlat = formattedFlats.find(
-        f => f.is_rented && f.tenant_unique_id === user.unique_id
+      const myFlat = flats.find(
+        f => f.is_rented && f.tenant?.unique_id === user.unique_id
       );
 
-      setFlat(myFlat);
+      setFlat(myFlat || null);
     } catch (error) {
-      console.error("Error fetching flat:", error);
+      console.error('Error fetching flat:', error);
     }
   };
 
@@ -51,11 +51,16 @@ export default function CreateRequest() {
     e.preventDefault();
 
     if (!flat) {
-      toast.error('You must be assigned to a flat to create a request');
+      toast.error('You must be assigned to a flat');
       return;
     }
 
-    if (!formData.issue_description.trim()) {
+    if (!formData.title.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
+
+    if (!formData.description.trim()) {
       toast.error('Please describe the issue');
       return;
     }
@@ -63,15 +68,19 @@ export default function CreateRequest() {
     setLoading(true);
     try {
       await serviceRequestsAPI.create({
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        priority: formData.priority,
         flat_unique_id: flat.flat_unique_id,
         tenant_unique_id: user.unique_id,
       });
 
-      toast.success('Service request created successfully!');
+      toast.success('Service request created successfully');
       navigate('/tenant/my-requests');
     } catch (error) {
-      console.error('Error creating request:', error);
+      console.error('Create request error:', error.response?.data);
+      toast.error(error.response?.data?.message || 'Failed to create request');
     } finally {
       setLoading(false);
     }
@@ -79,17 +88,16 @@ export default function CreateRequest() {
 
   if (!flat) {
     return (
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Create Service Request</h1>
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-600">You must be assigned to a flat to create service requests</p>
-          <button
-            onClick={() => navigate('/tenant/dashboard')}
-            className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Go to Dashboard
-          </button>
-        </div>
+      <div className="bg-white rounded-lg shadow p-12 text-center">
+        <p className="text-gray-600">
+          You must be assigned to a flat to create service requests
+        </p>
+        <button
+          onClick={() => navigate('/tenant/dashboard')}
+          className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg rounded-lg hover:bg-blue-700"
+        >
+          Go to Dashboard
+        </button>
       </div>
     );
   }
@@ -105,60 +113,98 @@ export default function CreateRequest() {
       </button>
 
       <div className="max-w-2xl">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Create Service Request</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">
+          Create Service Request
+        </h1>
 
         <div className="bg-white rounded-lg shadow p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+
+            {/* Flat Info */}
             <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Requesting for:</p>
-              <p className="text-lg font-semibold text-gray-800">{flat.flat_name}</p>
-              <p className="text-sm text-gray-600">{flat.location}</p>
+              <p className="text-sm text-gray-600">Requesting for</p>
+              <p className="text-lg font-semibold">{flat.title}</p>
+              <p className="text-sm text-gray-600">{flat.address}</p>
             </div>
 
+            {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Issue Description
-              </label>
-              <textarea
-                value={formData.issue_description}
-                onChange={(e) => setFormData({ ...formData, issue_description: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows="5"
-                placeholder="Describe the issue in detail..."
+              <label className="block text-sm font-medium mb-2">Title</label>
+              <input
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="e.g. Kitchen sink leakage"
               />
             </div>
 
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Priority
+              <label className="block text-sm font-medium mb-2">
+                Issue Description
               </label>
+              <textarea
+                value={formData.description}
+                onChange={e =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                className="w-full px-4 py-2 border rounded-lg"
+                rows="5"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Category</label>
+              <select
+                value={formData.category}
+                onChange={e =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
+                className="w-full px-4 py-2 border rounded-lg"
+              >
+                {CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Priority */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Priority</label>
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={e =>
+                  setFormData({ ...formData, priority: e.target.value })
+                }
+                className="w-full px-4 py-2 border rounded-lg"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
+                <option value="Emergency">Emergency</option>
               </select>
             </div>
 
+            {/* Actions */}
             <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Request'}
               </button>
+
               <button
                 type="button"
                 onClick={() => navigate('/tenant/my-requests')}
-                className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-400 transition"
+                className="flex-1 bg-gray-300 py-3 rounded-lg"
               >
                 Cancel
               </button>
             </div>
+
           </form>
         </div>
       </div>

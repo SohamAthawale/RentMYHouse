@@ -1,5 +1,14 @@
 import { DollarSign } from 'lucide-react';
 
+const PAYMENT_METHODS = [
+  'Cash',
+  'Check',
+  'Bank Transfer',
+  'Credit Card',
+  'PayPal',
+  'Other',
+];
+
 export default function PaymentModal({
   paymentData,
   setPaymentData,
@@ -7,19 +16,30 @@ export default function PaymentModal({
   onClose,
   onSubmit,
 }) {
+  const handleFlatChange = (e) => {
+    const selectedFlatId = e.target.value;
+
+    const selectedFlat = flats.find(
+      (f) => f.flat_unique_id === selectedFlatId
+    );
+
+    setPaymentData({
+      ...paymentData,
+      flat_unique_id: selectedFlatId,
+      amount_paid: selectedFlat ? selectedFlat.rent : '',
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
-
         <h2 className="text-xl font-bold mb-4">Record Rent Payment</h2>
 
         {/* FLAT */}
         <select
           className="w-full border px-4 py-2 rounded mb-3"
           value={paymentData.flat_unique_id}
-          onChange={(e) =>
-            setPaymentData({ ...paymentData, flat_unique_id: e.target.value })
-          }
+          onChange={handleFlatChange}
         >
           <option value="">Select Flat</option>
           {flats.map((flat) => (
@@ -29,19 +49,34 @@ export default function PaymentModal({
           ))}
         </select>
 
-        {/* AMOUNT */}
-        <div className="flex items-center border rounded mb-3 px-3">
+        {/* AMOUNT (AUTO-FILLED) */}
+        <div className="flex items-center border rounded mb-3 px-3 bg-gray-100">
           <DollarSign size={18} className="text-gray-400" />
           <input
             type="number"
-            placeholder="Amount"
-            className="w-full px-3 py-2 outline-none"
+            className="w-full px-3 py-2 outline-none bg-gray-100 cursor-not-allowed"
             value={paymentData.amount_paid}
-            onChange={(e) =>
-              setPaymentData({ ...paymentData, amount_paid: e.target.value })
-            }
+            readOnly
           />
         </div>
+
+        {/* PAYMENT METHOD */}
+        <select
+          className="w-full border px-4 py-2 rounded mb-4"
+          value={paymentData.payment_method}
+          onChange={(e) =>
+            setPaymentData({
+              ...paymentData,
+              payment_method: e.target.value,
+            })
+          }
+        >
+          {PAYMENT_METHODS.map((method) => (
+            <option key={method} value={method}>
+              {method}
+            </option>
+          ))}
+        </select>
 
         {/* ACTIONS */}
         <div className="flex gap-3 mt-6">
@@ -59,7 +94,6 @@ export default function PaymentModal({
             Cancel
           </button>
         </div>
-
       </div>
     </div>
   );

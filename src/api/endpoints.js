@@ -1,50 +1,96 @@
 import api from './api';
 
+/* ---------------- AUTH ---------------- */
 export const authAPI = {
   signup: (data) => api.post('/signup', data),
   login: (data) => api.post('/login', data),
-  getProfile: (uniqueId) => api.get(`/profile/${uniqueId}`),
-  changePassword: (data) => api.post('/change-password', data),
-  updateProfile: (data) => api.put('/update-profile', data),
+  verifyOTP: (data) => api.post('/verify-otp', data),
+  resendOTP: (data) => api.post('/request-otp', data),
 };
 
+/* ---------------- FLATS ---------------- */
 export const flatsAPI = {
   createFlat: (data) => api.post('/create-flat', data),
-  getOwnerFlats: (ownerUniqueId) => api.get(`/owner-flats/${ownerUniqueId}`),
+
   listFlats: () => api.get('/list-flats'),
-  rentFlat: (data) => api.post('/rent-flat', data),
-  vacateFlat: (flatUniqueId) => api.post(`/vacate-flat/${flatUniqueId}`),
-  deleteFlat: (flatUniqueId) => api.delete(`/delete-flat/${flatUniqueId}`),
+
+  getOwnerFlats: (ownerUniqueId) =>
+    api.get(`/owner-flats/${ownerUniqueId}`),
+
+  /** 🔑 SEND RENT OTP (THIS WAS MISSING) */
+  requestRentOtp: (data) =>
+    api.post('/request-rent-otp', data),
+
+  /** 🔑 CONFIRM RENT WITH OTP */
+  rentFlat: (data) =>
+    api.post('/rent-flat', data),
+
+  vacateFlat: (flatUniqueId) =>
+    api.post(`/vacate-flat/${flatUniqueId}`),
+
+  deleteFlat: (flatUniqueId) =>
+    api.delete(`/delete-flat/${flatUniqueId}`),
 };
 
+/* ---------------- TENANTS ---------------- */
 export const tenantsAPI = {
   getAllTenants: () => api.get('/all-tenants'),
   getAvailableTenants: () => api.get('/available-tenants'),
 };
 
+/* ---------------- SERVICE REQUESTS ---------------- */
 export const serviceRequestsAPI = {
   create: (data) => api.post('/create-service-request', data),
-  getTenantRequests: (tenantUniqueId) => api.get(`/tenant-service-requests/${tenantUniqueId}`),
-  getOwnerRequests: (ownerUniqueId) => api.get(`/owner-service-requests/${ownerUniqueId}`),
+  getTenantRequests: (tenantId) =>
+    api.get(`/tenant-service-requests/${tenantId}`),
+  getOwnerRequests: (ownerId) =>
+    api.get(`/owner-service-requests/${ownerId}`),
   update: (data) => api.put('/update-service-request', data),
   rate: (data) => api.post('/rate-service-request', data),
-  getDetails: (requestUniqueId) => api.get(`/service-request-details/${requestUniqueId}`),
+  getDetails: (id) =>
+    api.get(`/service-request-details/${id}`),
 };
 
+/* ---------------- FINANCIALS ---------------- */
 export const financialsAPI = {
-  recordRentPayment: (data) => api.post('/record-rent-payment', data),
-  getFinancialSummary: (ownerUniqueId, year, month) =>
-    api.get(`/financial-summary/${ownerUniqueId}`, { params: { year, month } }),
-  getRentPaymentHistory: (params) => api.get('/rent-payment-history', { params }),
-  getExpenseHistory: (params) => api.get('/expense-history', { params }),
-  createManualExpense: (data) => api.post('/create-manual-expense', data),
+  /* 🟢 TENANT */
+  getMyRentPayments: () =>
+    api.get('/tenant/rent-payments'),
+  /* 🔵 OWNER */
+  ownerRecordRent: (data) =>
+    api.post('/owner/record-rent', data),
+
+  getFinancialSummary: (ownerId, year, month) =>
+    api.get(`/financial-summary/${ownerId}`, {
+      params: { year, month },
+    }),
+
+  getRentPaymentHistory: (params) =>
+    api.get('/rent-payment-history', { params }),
+
+  getExpenseHistory: (params) =>
+    api.get('/expense-history', { params }),
+
+  createManualExpense: (data) =>
+    api.post('/create-manual-expense', data),
+
+  recordRentPayment: (data) =>
+  api.post('/tenant/record-rent-payment', data),
+  
+  verifyRentPayment: (paymentUniqueId) =>
+  api.post(`/owner/verify-rent-payment/${paymentUniqueId}`),
+
 };
 
+
+/* ---------------- ADMIN ---------------- */
 export const adminAPI = {
   getStatistics: () => api.get('/admin/statistics'),
-  getUsers: (params) => api.get('/admin/users', { params }),
-  getUserDetails: (uniqueId) => api.get(`/admin/user-details/${uniqueId}`),
+  getUsers: (params) =>
+    api.get('/admin/users', { params }),
+  getUserDetails: (id) =>
+    api.get(`/admin/user-details/${id}`),
   cleanup: () => api.post('/admin/cleanup'),
   exportData: () => api.get('/admin/export'),
-  deleteUser: (uniqueId) => api.delete(`/delete-user/${uniqueId}`),
+  deleteUser: (id) => api.delete(`/delete-user/${id}`),
 };

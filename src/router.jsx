@@ -23,7 +23,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import Users from './pages/admin/Users';
 import UserDetails from './pages/admin/UserDetails';
 import Statistics from './pages/admin/Statistics';
-
+import VerifyOTP from './auth/VerifyOTP';
 import Profile from './pages/profile/Profile';
 import ChangePassword from './pages/profile/ChangePassword';
 
@@ -39,6 +39,10 @@ const router = createBrowserRouter([
   {
     path: '/signup',
     element: <Signup />,
+  },
+  {
+  path: '/verify-otp',
+  element: <VerifyOTP />,
   },
   {
     path: '/profile',
@@ -145,7 +149,9 @@ const router = createBrowserRouter([
         element: <Statistics />,
       },
     ],
+
   },
+
 ]);
 
 export default router;

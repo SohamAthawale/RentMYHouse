@@ -17,6 +17,8 @@ export default function Flats() {
   const [selectedFlat, setSelectedFlat] = useState(null);
   const [availableTenants, setAvailableTenants] = useState([]);
   const [selectedTenant, setSelectedTenant] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpRequested, setOtpRequested] = useState(false);
 
   useEffect(() => {
     fetchFlats();
@@ -24,210 +26,155 @@ export default function Flats() {
 
   const fetchFlats = async () => {
     try {
-      setLoading(true);
       const res = await flatsAPI.listFlats();
-
-      console.log("API /list-flats:", res.data);
-
       setFlats(res.data?.flats || []);
-    } catch (err) {
-      console.error("Error loading flats:", err);
+    } catch {
       setFlats([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (flatUniqueId) => {
-    if (!confirm('Are you sure you want to delete this flat?')) return;
-
-    try {
-      await flatsAPI.deleteFlat(flatUniqueId);
-      toast.success('Flat deleted successfully');
-      fetchFlats();
-    } catch (error) {
-      console.error('Error deleting flat:', error);
-    }
-  };
-
   const openAssignModal = async (flat) => {
     setSelectedFlat(flat);
+    setOtpRequested(false);
+    setOtpCode('');
     try {
-      const response = await tenantsAPI.getAvailableTenants();
-      setAvailableTenants(response.data || []);
+      const res = await tenantsAPI.getAvailableTenants();
+      setAvailableTenants(
+        Array.isArray(res.data?.available_tenants)
+          ? res.data.available_tenants
+          : []
+      );
       setShowAssignModal(true);
-    } catch (error) {
-      console.error('Error fetching tenants:', error);
+    } catch {
+      toast.error('Failed to load tenants');
     }
   };
 
-  const handleAssignTenant = async () => {
-    if (!selectedTenant) return toast.error('Please select a tenant');
+  const requestOtp = async () => {
+    if (!selectedTenant) return toast.error('Select a tenant first');
+
+    try {
+      await flatsAPI.requestRentOtp({
+        flat_unique_id: selectedFlat.flat_unique_id,
+        tenant_unique_id: selectedTenant,
+      });
+      toast.success('OTP sent to tenant');
+      setOtpRequested(true);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to send OTP');
+    }
+  };
+
+  const confirmAssign = async () => {
+    if (!otpCode) return toast.error('Enter OTP');
 
     try {
       await flatsAPI.rentFlat({
         flat_unique_id: selectedFlat.flat_unique_id,
         tenant_unique_id: selectedTenant,
+        otp_code: otpCode,
       });
+
       toast.success('Tenant assigned successfully');
       setShowAssignModal(false);
-      setSelectedTenant('');
       fetchFlats();
-    } catch (error) {
-      console.error('Error assigning tenant:', error);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to assign tenant');
     }
   };
 
-  const handleVacate = async (flatUniqueId) => {
-    if (!confirm('Are you sure you want to vacate this flat?')) return;
-
-    try {
-      await flatsAPI.vacateFlat(flatUniqueId);
-      toast.success('Flat vacated successfully');
-      fetchFlats();
-    } catch (error) {
-      console.error('Error vacating flat:', error);
-    }
+  const handleVacate = async (flatId) => {
+    if (!confirm('Vacate this flat?')) return;
+    await flatsAPI.vacateFlat(flatId);
+    fetchFlats();
   };
 
   if (loading) return <Loader />;
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Manage Flats</h1>
-
+      <div className="flex justify-between mb-6">
+        <h1 className="text-3xl font-bold">Manage Flats</h1>
         <button
           onClick={() => navigate('/owner/create-flat')}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
         >
-          <Plus size={20} />
-          Create Flat
+          <Plus size={18} /> Create Flat
         </button>
       </div>
 
-      {flats.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Home size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Flats Yet</h3>
-          <p className="text-gray-500 mb-6">Create your first flat to get started</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {flats.map((flat) => (
+          <div key={flat.flat_unique_id} className="bg-white p-6 rounded-lg shadow">
+            <h3 className="text-xl font-semibold">{flat.title}</h3>
+            <p>{flat.address}</p>
+            <p className="mt-2">Rent: ₹{flat.rent}</p>
 
-          <button
-            onClick={() => navigate('/owner/create-flat')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Create Flat
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {flats.map((flat) => (
-            <div key={flat.flat_unique_id} className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-800">{flat.title}</h3>
-                  <p className="text-gray-600">{flat.address}</p>
-                </div>
-
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    flat.is_rented
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}
-                >
-                  {flat.is_rented ? 'Rented' : 'Available'}
-                </span>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <p className="text-gray-700">
-                  <span className="font-medium">Rent:</span> ${flat.rent}
-                </p>
-
-                {flat.tenant && (
-                  <p className="text-gray-700">
-                    <span className="font-medium">Tenant:</span> {flat.tenant.username}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                {!flat.is_rented ? (
-                  <button
-                    onClick={() => openAssignModal(flat)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-                  >
-                    <UserPlus size={16} />
-                    Assign
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleVacate(flat.flat_unique_id)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition"
-                  >
-                    <UserMinus size={16} />
-                    Vacate
-                  </button>
-                )}
-
-                <button
-                  onClick={() => handleDelete(flat.flat_unique_id)}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            {!flat.is_rented ? (
+              <button
+                onClick={() => openAssignModal(flat)}
+                className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg"
+              >
+                <UserPlus size={16} /> Assign
+              </button>
+            ) : (
+              <button
+                onClick={() => handleVacate(flat.flat_unique_id)}
+                className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg"
+              >
+                <UserMinus size={16} /> Vacate
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
 
       {showAssignModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              Assign Tenant to {selectedFlat?.title}
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">
+              Assign Tenant – {selectedFlat.title}
             </h2>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Tenant
-              </label>
+            <select
+              value={selectedTenant}
+              onChange={(e) => setSelectedTenant(e.target.value)}
+              className="w-full border p-2 rounded mb-4"
+            >
+              <option value="">Select tenant</option>
+              {availableTenants.map((t) => (
+                <option key={t.unique_id} value={t.unique_id}>
+                  {t.username} ({t.email})
+                </option>
+              ))}
+            </select>
 
-              <select
-                value={selectedTenant}
-                onChange={(e) => setSelectedTenant(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Choose a tenant...</option>
-
-                {availableTenants.map((tenant) => (
-                  <option key={tenant.unique_id} value={tenant.unique_id}>
-                    {tenant.username} ({tenant.email})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex gap-3">
+            {!otpRequested ? (
               <button
-                onClick={handleAssignTenant}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                onClick={requestOtp}
+                className="bg-blue-600 text-white px-4 py-2 rounded w-full"
               >
-                Assign
+                Send OTP
               </button>
-
-              <button
-                onClick={() => {
-                  setShowAssignModal(false);
-                  setSelectedTenant('');
-                }}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="w-full border p-2 rounded mb-3"
+                />
+                <button
+                  onClick={confirmAssign}
+                  className="bg-green-600 text-white px-4 py-2 rounded w-full"
+                >
+                  Confirm Assignment
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

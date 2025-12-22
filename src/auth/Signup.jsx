@@ -26,8 +26,11 @@ export default function Signup() {
     setLoading(true);
     try {
       await authAPI.signup(formData);
-      toast.success('Account created successfully! Please login.');
-      navigate('/login');
+      toast.success('Verification code sent to your email');
+      navigate('/verify-otp', {
+        state: { email: formData.email }
+    });
+
     } catch (error) {
       const message =
         error.response?.data?.error ||
@@ -105,7 +108,6 @@ export default function Signup() {
             >
               <option value="Tenant">Tenant</option>
               <option value="Owner">Owner</option>
-              <option value="Admin">Admin</option>
             </select>
           </div>
 

@@ -8,32 +8,46 @@ import { ArrowLeft } from 'lucide-react';
 export default function CreateFlat() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
-    flat_name: '',
-    location: '',
-    rent_amount: '',
+    title: '',
+    address: '',
+    rent: '',
   });
+
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.flat_name || !formData.location || !formData.rent_amount) {
+    if (!formData.title || !formData.address || !formData.rent) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (user.account_type !== 'Owner') {
+      toast.error('Only owners can create flats');
       return;
     }
 
     setLoading(true);
     try {
       await flatsAPI.createFlat({
-        ...formData,
         owner_unique_id: user.unique_id,
-        rent_amount: parseFloat(formData.rent_amount),
+        title: formData.title,
+        address: formData.address,
+        rent: Number(formData.rent),
       });
+
       toast.success('Flat created successfully!');
       navigate('/owner/flats');
     } catch (error) {
-      console.error('Error creating flat:', error);
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Failed to create flat';
+      toast.error(msg);
+      console.error('Create flat error:', error);
     } finally {
       setLoading(false);
     }
@@ -50,47 +64,55 @@ export default function CreateFlat() {
       </button>
 
       <div className="max-w-2xl">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Create New Flat</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">
+          Create New Flat
+        </h1>
 
         <div className="bg-white rounded-lg shadow p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Flat Name
+              <label className="block text-sm font-medium mb-2">
+                Flat Title
               </label>
               <input
                 type="text"
-                value={formData.flat_name}
-                onChange={(e) => setFormData({ ...formData, flat_name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Apartment 101"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="Apartment 101"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
+              <label className="block text-sm font-medium mb-2">
+                Address
               </label>
               <input
                 type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., 123 Main St, New York"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="123 Main Street"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Monthly Rent Amount ($)
+              <label className="block text-sm font-medium mb-2">
+                Monthly Rent
               </label>
               <input
                 type="number"
                 step="0.01"
-                value={formData.rent_amount}
-                onChange={(e) => setFormData({ ...formData, rent_amount: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="1500.00"
+                value={formData.rent}
+                onChange={(e) =>
+                  setFormData({ ...formData, rent: e.target.value })
+                }
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="1500"
               />
             </div>
 
@@ -98,14 +120,15 @@ export default function CreateFlat() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
               >
                 {loading ? 'Creating...' : 'Create Flat'}
               </button>
+
               <button
                 type="button"
                 onClick={() => navigate('/owner/flats')}
-                className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-400 transition"
+                className="flex-1 bg-gray-300 py-3 rounded-lg"
               >
                 Cancel
               </button>
