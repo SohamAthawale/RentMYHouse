@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { flatsAPI, tenantsAPI } from '../../api/endpoints';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Plus, Trash2, UserPlus, UserMinus, Home } from 'lucide-react';
+import { Plus, Trash2, UserPlus, UserMinus } from 'lucide-react';
 import Loader from '../../components/Loader';
 
 export default function Flats() {
@@ -35,10 +35,26 @@ export default function Flats() {
     }
   };
 
+  // ---------------- DELETE FLAT ----------------
+  const handleDeleteFlat = async (flatId) => {
+    if (!window.confirm('Are you sure you want to permanently delete this flat?')) return;
+
+    try {
+      await flatsAPI.deleteFlat(flatId);
+      toast.success('Flat deleted successfully');
+      fetchFlats();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to delete flat');
+    }
+  };
+
+  // ---------------- ASSIGN FLOW ----------------
   const openAssignModal = async (flat) => {
     setSelectedFlat(flat);
     setOtpRequested(false);
     setOtpCode('');
+    setSelectedTenant('');
+
     try {
       const res = await tenantsAPI.getAvailableTenants();
       setAvailableTenants(
@@ -53,7 +69,10 @@ export default function Flats() {
   };
 
   const requestOtp = async () => {
-    if (!selectedTenant) return toast.error('Select a tenant first');
+    if (!selectedTenant || !selectedFlat) {
+      toast.error('Select a tenant first');
+      return;
+    }
 
     try {
       await flatsAPI.requestRentOtp({
@@ -68,7 +87,10 @@ export default function Flats() {
   };
 
   const confirmAssign = async () => {
-    if (!otpCode) return toast.error('Enter OTP');
+    if (!otpCode || !selectedFlat) {
+      toast.error('Enter OTP');
+      return;
+    }
 
     try {
       await flatsAPI.rentFlat({
@@ -86,9 +108,15 @@ export default function Flats() {
   };
 
   const handleVacate = async (flatId) => {
-    if (!confirm('Vacate this flat?')) return;
-    await flatsAPI.vacateFlat(flatId);
-    fetchFlats();
+    if (!window.confirm('Vacate this flat?')) return;
+
+    try {
+      await flatsAPI.vacateFlat(flatId);
+      toast.success('Flat vacated');
+      fetchFlats();
+    } catch {
+      toast.error('Failed to vacate flat');
+    }
   };
 
   if (loading) return <Loader />;
@@ -99,7 +127,7 @@ export default function Flats() {
         <h1 className="text-3xl font-bold">Manage Flats</h1>
         <button
           onClick={() => navigate('/owner/create-flat')}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
         >
           <Plus size={18} /> Create Flat
         </button>
@@ -107,22 +135,34 @@ export default function Flats() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {flats.map((flat) => (
-          <div key={flat.flat_unique_id} className="bg-white p-6 rounded-lg shadow">
+          <div
+            key={flat.flat_unique_id}
+            className="bg-white p-6 rounded-lg shadow"
+          >
             <h3 className="text-xl font-semibold">{flat.title}</h3>
             <p>{flat.address}</p>
             <p className="mt-2">Rent: ₹{flat.rent}</p>
 
             {!flat.is_rented ? (
-              <button
-                onClick={() => openAssignModal(flat)}
-                className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg"
-              >
-                <UserPlus size={16} /> Assign
-              </button>
+              <>
+                <button
+                  onClick={() => openAssignModal(flat)}
+                  className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg w-full"
+                >
+                  <UserPlus size={16} /> Assign
+                </button>
+
+                <button
+                  onClick={() => handleDeleteFlat(flat.flat_unique_id)}
+                  className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={16} /> Delete Flat
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => handleVacate(flat.flat_unique_id)}
-                className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg"
+                className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg w-full"
               >
                 <UserMinus size={16} /> Vacate
               </button>
@@ -131,7 +171,7 @@ export default function Flats() {
         ))}
       </div>
 
-      {showAssignModal && (
+      {showAssignModal && selectedFlat && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">

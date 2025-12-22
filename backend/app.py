@@ -12,7 +12,7 @@ from ownerreqests import (
     delete_flat, list_all_tenants, list_available_tenants,request_rent_otp, verify_rent_payment
 )
 from servicerequests import (
-    create_service_request, get_tenant_service_requests, get_owner_service_requests,
+    create_service_request, get_tenant_service_requests, get_owner_service_requests, update_service_expense,
     update_service_request_status, add_tenant_rating, get_service_request_details
 )
 from financials import (
@@ -372,6 +372,39 @@ def get_service_request_details_route(request_unique_id):
     result, status_code = get_service_request_details(request_unique_id)
     return jsonify(result), status_code
 
+@app.route("/update-service-expense", methods=["PUT"])
+@login_required
+def update_service_expense_route():
+    """
+    Update an existing service expense (owner only)
+    """
+    try:
+        data = request.get_json() or {}
+
+        owner_unique_id = session.get("user_unique_id")
+        if not owner_unique_id:
+            return {"status": "fail", "message": "Authentication required"}, 401
+
+        result, status_code = update_service_expense(
+            expense_unique_id=data.get("expense_unique_id"),
+            owner_unique_id=owner_unique_id,
+            amount=data.get("amount"),
+            description=data.get("description"),
+            expense_type=data.get("expense_type"),
+            vendor_name=data.get("vendor_name"),
+            vendor_contact=data.get("vendor_contact"),
+            is_tax_deductible=data.get("is_tax_deductible"),
+            notes=data.get("notes"),
+        )
+
+        return jsonify(result), status_code
+
+    except Exception as e:
+        return jsonify({
+            "status": "fail",
+            "message": f"Failed to update service expense: {str(e)}"
+        }), 500
+
 # ==================== FINANCIAL TRACKING ENDPOINTS ====================
 @app.route('/tenant/rent-payments', methods=['GET'])
 @login_required
@@ -616,44 +649,44 @@ def api_request_rent_otp():
         return {"status": "fail", "message": "flat_unique_id and tenant_unique_id are required"}, 400
     return request_rent_otp(flat_id, tenant_id)
 
-@app.route('/admin/cleanup-unverified', methods=['POST'])
-def cleanup_unverified_accounts_route():
-    """Clean up unverified accounts older than specified hours."""
-    try:
-        data = request.get_json()
-        hours_old = data.get('hours_old', 24) if data else 24
+# @app.route('/admin/cleanup-unverified', methods=['POST'])
+# def cleanup_unverified_accounts_route():
+#     """Clean up unverified accounts older than specified hours."""
+#     try:
+#         data = request.get_json()
+#         hours_old = data.get('hours_old', 24) if data else 24
         
-        result = cleanup_unverified_accounts(hours_old)
-        return jsonify(result), 200
+#         result = cleanup_unverified_accounts(hours_old)
+#         return jsonify(result), 200
         
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "message": f"Cleanup failed: {str(e)}"
-        }), 500
+#     except Exception as e:
+#         return jsonify({
+#             "status": "error",
+#             "message": f"Cleanup failed: {str(e)}"
+#         }), 500
 
-@app.route('/admin/cleanup-otps', methods=['POST'])  
-def cleanup_otps_route():
-    """Clean up expired OTP records."""
-    result = cleanup_expired_otps_only()
-    return jsonify(result), 200
-@app.route('/upload-agreement', methods=['POST'])
-def upload_agreement_route():
-    try:
-        flat_id = request.form.get('flat_unique_id')
-        tenant_id = request.form.get('tenant_unique_id')
-        agreement_date = datetime.strptime(request.form.get('agreement_date'), '%Y-%m-%d').date()
-        start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d').date()
-        end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d').date()
+# @app.route('/admin/cleanup-otps', methods=['POST'])  
+# def cleanup_otps_route():
+#     """Clean up expired OTP records."""
+#     result = cleanup_expired_otps_only()
+#     return jsonify(result), 200
+# @app.route('/upload-agreement', methods=['POST'])
+# def upload_agreement_route():
+#     try:
+#         flat_id = request.form.get('flat_unique_id')
+#         tenant_id = request.form.get('tenant_unique_id')
+#         agreement_date = datetime.strptime(request.form.get('agreement_date'), '%Y-%m-%d').date()
+#         start_date = datetime.strptime(request.form.get('start_date'), '%Y-%m-%d').date()
+#         end_date = datetime.strptime(request.form.get('end_date'), '%Y-%m-%d').date()
         
-        if 'file' not in request.files:
-            return jsonify({"status": "fail", "message": "No file uploaded"}), 400
+#         if 'file' not in request.files:
+#             return jsonify({"status": "fail", "message": "No file uploaded"}), 400
             
-        result, status = upload_rent_agreement(flat_id, tenant_id, agreement_date, start_date, end_date, request.files['file'])
-        return jsonify(result), status
+#         result, status = upload_rent_agreement(flat_id, tenant_id, agreement_date, start_date, end_date, request.files['file'])
+#         return jsonify(result), status
         
-    except Exception as e:
-        return jsonify({"status": "fail", "message": str(e)}), 500
+#     except Exception as e:
+#         return jsonify({"status": "fail", "message": str(e)}), 500
 
 @app.route('/agreements', methods=['GET'])
 def get_agreements_route():

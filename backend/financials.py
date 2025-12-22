@@ -176,59 +176,79 @@ def owner_record_rent_payment(
 
 
 def get_owner_financial_summary(owner_unique_id, year=None, month=None):
-    """
-    Get comprehensive financial summary for an owner.
-    
-    Args:
-        owner_unique_id (str): Owner's unique identifier
-        year (int, optional): Specific year for filtering
-        month (int, optional): Specific month for filtering (1-12)
-    
-    Returns:
-        tuple: (response_dict, status_code)
-    """
     try:
         owner = User.query.filter_by(unique_id=owner_unique_id).first()
         if not owner:
             return {"status": "fail", "message": "Owner not found"}, 404
-        
+
         if owner.account_type != 'Owner':
             return {"status": "fail", "message": "User is not an owner"}, 403
 
-        # Set default year and month if not provided
-        if not year:
+        if year is None:
             year = datetime.now().year
-        
-        # Base queries for filtering by date
-        payment_query = RentPayment.query.filter_by(owner_unique_id=owner_unique_id)
-        expense_query = ServiceExpense.query.filter_by(owner_unique_id=owner_unique_id)
-        
-        if year:
-            payment_query = payment_query.filter(extract('year', RentPayment.payment_date) == year)
-            expense_query = expense_query.filter(extract('year', ServiceExpense.expense_date) == year)
-        
-        if month:
-            payment_query = payment_query.filter(extract('month', RentPayment.payment_date) == month)
-            expense_query = expense_query.filter(extract('month', ServiceExpense.expense_date) == month)
 
-        # Calculate totals
-        total_income = payment_query.with_entities(func.sum(RentPayment.amount)).scalar() or Decimal('0')
-        total_expenses = expense_query.with_entities(func.sum(ServiceExpense.amount)).scalar() or Decimal('0')
+        # ---------------- BASE QUERIES ----------------
+
+        payment_query = RentPayment.query.filter_by(
+            owner_unique_id=owner_unique_id,
+            payment_status="Paid"  # 🔥 IMPORTANT FIX
+        )
+
+        expense_query = ServiceExpense.query.filter_by(
+            owner_unique_id=owner_unique_id
+        )
+
+        if year:
+            payment_query = payment_query.filter(
+                extract('year', RentPayment.payment_date) == year
+            )
+            expense_query = expense_query.filter(
+                extract('year', ServiceExpense.expense_date) == year
+            )
+
+        if month:
+            payment_query = payment_query.filter(
+                extract('month', RentPayment.payment_date) == month
+            )
+            expense_query = expense_query.filter(
+                extract('month', ServiceExpense.expense_date) == month
+            )
+
+        # ---------------- TOTALS ----------------
+
+        total_income = payment_query.with_entities(
+            func.coalesce(func.sum(RentPayment.amount), 0)
+        ).scalar()
+
+        total_expenses = expense_query.with_entities(
+            func.coalesce(func.sum(ServiceExpense.amount), 0)
+        ).scalar()
+
         profit = total_income - total_expenses
 
-        # Get monthly breakdown for the year
+        # ---------------- MONTHLY BREAKDOWN ----------------
+
         monthly_data = []
         for m in range(1, 13):
-            month_income = RentPayment.query.filter_by(owner_unique_id=owner_unique_id)\
-                                           .filter(extract('year', RentPayment.payment_date) == year)\
-                                           .filter(extract('month', RentPayment.payment_date) == m)\
-                                           .with_entities(func.sum(RentPayment.amount)).scalar() or Decimal('0')
-            
-            month_expenses = ServiceExpense.query.filter_by(owner_unique_id=owner_unique_id)\
-                                                .filter(extract('year', ServiceExpense.expense_date) == year)\
-                                                .filter(extract('month', ServiceExpense.expense_date) == m)\
-                                                .with_entities(func.sum(ServiceExpense.amount)).scalar() or Decimal('0')
-            
+            month_income = db.session.query(
+                func.coalesce(func.sum(RentPayment.amount), 0)
+            ).filter_by(
+                owner_unique_id=owner_unique_id,
+                payment_status="Paid"
+            ).filter(
+                extract('year', RentPayment.payment_date) == year,
+                extract('month', RentPayment.payment_date) == m
+            ).scalar()
+
+            month_expenses = db.session.query(
+                func.coalesce(func.sum(ServiceExpense.amount), 0)
+            ).filter_by(
+                owner_unique_id=owner_unique_id
+            ).filter(
+                extract('year', ServiceExpense.expense_date) == year,
+                extract('month', ServiceExpense.expense_date) == m
+            ).scalar()
+
             monthly_data.append({
                 "month": m,
                 "month_name": date(year, m, 1).strftime("%B"),
@@ -237,47 +257,60 @@ def get_owner_financial_summary(owner_unique_id, year=None, month=None):
                 "profit": str(month_income - month_expenses)
             })
 
-        # Get property-wise breakdown
+        # ---------------- PROPERTY BREAKDOWN ----------------
+
         properties_data = []
         flats = owner.flats_owned.all()
-        
+
         for flat in flats:
-            flat_income = payment_query.filter_by(flat_unique_id=flat.flat_unique_id)\
-                                     .with_entities(func.sum(RentPayment.amount)).scalar() or Decimal('0')
-            
-            flat_expenses = expense_query.filter_by(flat_unique_id=flat.flat_unique_id)\
-                                       .with_entities(func.sum(ServiceExpense.amount)).scalar() or Decimal('0')
-            
+            flat_income = payment_query.filter_by(
+                flat_unique_id=flat.flat_unique_id
+            ).with_entities(
+                func.coalesce(func.sum(RentPayment.amount), 0)
+            ).scalar()
+
+            flat_expenses = expense_query.filter_by(
+                flat_unique_id=flat.flat_unique_id
+            ).with_entities(
+                func.coalesce(func.sum(ServiceExpense.amount), 0)
+            ).scalar()
+
             properties_data.append({
                 "flat_unique_id": flat.flat_unique_id,
                 "title": flat.title,
                 "address": flat.address,
                 "monthly_rent": str(flat.rent),
-                "is_rented": flat.rented_to_unique_id is not None,
+                "is_rented": bool(flat.rented_to_unique_id),
                 "income": str(flat_income),
                 "expenses": str(flat_expenses),
                 "profit": str(flat_income - flat_expenses)
             })
 
-        # Get expense breakdown by category
+        # ---------------- EXPENSE CATEGORIES ----------------
+
         expense_categories = db.session.query(
             ServiceExpense.expense_type,
-            func.sum(ServiceExpense.amount).label('total')
-        ).filter_by(owner_unique_id=owner_unique_id)
-        
+            func.coalesce(func.sum(ServiceExpense.amount), 0)
+        ).filter_by(
+            owner_unique_id=owner_unique_id
+        )
+
         if year:
-            expense_categories = expense_categories.filter(extract('year', ServiceExpense.expense_date) == year)
+            expense_categories = expense_categories.filter(
+                extract('year', ServiceExpense.expense_date) == year
+            )
         if month:
-            expense_categories = expense_categories.filter(extract('month', ServiceExpense.expense_date) == month)
-        
-        expense_categories = expense_categories.group_by(ServiceExpense.expense_type).all()
-        
-        categories_data = []
-        for category, total in expense_categories:
-            categories_data.append({
-                "category": category,
-                "total": str(total)
-            })
+            expense_categories = expense_categories.filter(
+                extract('month', ServiceExpense.expense_date) == month
+            )
+
+        expense_categories = expense_categories.group_by(
+            ServiceExpense.expense_type
+        ).all()
+
+        categories_data = [
+            {"category": c, "total": str(t)} for c, t in expense_categories
+        ]
 
         financial_summary = {
             "period": {
@@ -289,7 +322,9 @@ def get_owner_financial_summary(owner_unique_id, year=None, month=None):
                 "total_income": str(total_income),
                 "total_expenses": str(total_expenses),
                 "net_profit": str(profit),
-                "profit_margin": str(round((profit / total_income * 100), 2)) if total_income > 0 else "0.00"
+                "profit_margin": str(
+                    round((profit / total_income * 100), 2)
+                ) if total_income > 0 else "0.00"
             },
             "monthly_breakdown": monthly_data,
             "properties_breakdown": properties_data,
@@ -298,14 +333,20 @@ def get_owner_financial_summary(owner_unique_id, year=None, month=None):
                 "total_properties": len(flats),
                 "rented_properties": sum(1 for f in flats if f.rented_to_unique_id),
                 "vacant_properties": sum(1 for f in flats if not f.rented_to_unique_id),
-                "average_rent": str(sum(f.rent for f in flats) / len(flats)) if flats else "0.00"
+                "average_rent": str(
+                    sum(f.rent for f in flats) / len(flats)
+                ) if flats else "0.00"
             }
         }
 
         return {"status": "success", "financial_summary": financial_summary}, 200
 
     except Exception as e:
-        return {"status": "fail", "message": f"Failed to get financial summary: {str(e)}"}, 500
+        return {
+            "status": "fail",
+            "message": f"Failed to get financial summary: {str(e)}"
+        }, 500
+
 
 def get_rent_payment_history(flat_unique_id=None, tenant_unique_id=None, owner_unique_id=None):
     """

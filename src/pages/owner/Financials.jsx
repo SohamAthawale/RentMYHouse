@@ -20,6 +20,7 @@ export default function Financials() {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   const [verifyingId, setVerifyingId] = useState(null);
+  const [editingExpense, setEditingExpense] = useState(null);
 
   const [paymentData, setPaymentData] = useState({
     flat_unique_id: '',
@@ -32,6 +33,9 @@ export default function Financials() {
     expense_type: '',
     amount: '',
     description: '',
+    vendor_name: '',
+    vendor_contact: '',
+    expense_unique_id: '',
   });
 
   useEffect(() => {
@@ -72,7 +76,7 @@ export default function Financials() {
     }
   };
 
-  // ---------------- ACTIONS ----------------
+  // ---------------- PAYMENTS ----------------
 
   const handleRecordPayment = async () => {
     if (!paymentData.flat_unique_id || !paymentData.amount_paid) {
@@ -115,35 +119,60 @@ export default function Financials() {
     }
   };
 
-  const handleCreateExpense = async () => {
-    if (!expenseData.flat_unique_id || !expenseData.expense_type || !expenseData.amount) {
+  // ---------------- EXPENSES (CREATE + EDIT) ----------------
+
+  const handleSubmitExpense = async () => {
+    if (!expenseData.expense_type || !expenseData.amount) {
       toast.error('Please fill in all required fields');
       return;
     }
 
     try {
-      await financialsAPI.createManualExpense({
-        ...expenseData,
-        amount: parseFloat(expenseData.amount),
-        owner_unique_id: user.unique_id,
-      });
+      if (editingExpense) {
+        // ✏️ EDIT EXPENSE
+        await financialsAPI.updateServiceExpense({
+          expense_unique_id: expenseData.expense_unique_id,
+          expense_type: expenseData.expense_type,
+          amount: parseFloat(expenseData.amount),
+          description: expenseData.description,
+          vendor_name: expenseData.vendor_name,
+          vendor_contact: expenseData.vendor_contact,
+        });
 
-      toast.success('Expense recorded successfully');
+        toast.success('Expense updated successfully');
+      } else {
+        // ➕ CREATE EXPENSE
+        await financialsAPI.createManualExpense({
+          flat_unique_id: expenseData.flat_unique_id,
+          expense_type: expenseData.expense_type,
+          amount: parseFloat(expenseData.amount),
+          description: expenseData.description,
+          owner_unique_id: user.unique_id,
+        });
+
+        toast.success('Expense recorded successfully');
+      }
+
       setShowExpenseModal(false);
+      setEditingExpense(null);
       setExpenseData({
         flat_unique_id: '',
         expense_type: '',
         amount: '',
         description: '',
+        vendor_name: '',
+        vendor_contact: '',
+        expense_unique_id: '',
       });
+
       fetchFinancialData();
     } catch (error) {
       console.error(error);
-      toast.error('Failed to create expense');
+      toast.error('Failed to save expense');
     }
   };
 
-  if (loading) return <Loader />;
+  // ---------------- UI HELPERS ----------------
 
   const formatMoney = (value) => {
     const num = parseFloat(value);
@@ -161,26 +190,33 @@ export default function Financials() {
       </span>
     );
 
+  if (loading) return <Loader />;
+
   // ---------------- UI ----------------
 
   return (
     <div>
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Financial Management</h1>
+        <h1 className="text-3xl font-bold text-gray-800">
+          Financial Management
+        </h1>
 
         <div className="flex gap-3">
           <button
             onClick={() => setShowPaymentModal(true)}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg"
           >
             <Plus size={20} />
             Record Payment
           </button>
 
           <button
-            onClick={() => setShowExpenseModal(true)}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
+            onClick={() => {
+              setEditingExpense(null);
+              setShowExpenseModal(true);
+            }}
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg"
           >
             <Plus size={20} />
             Add Expense
@@ -224,33 +260,38 @@ export default function Financials() {
 
           <div className="p-6">
             {payments.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No payments recorded yet</p>
+              <p className="text-gray-500 text-center py-8">
+                No payments recorded yet
+              </p>
             ) : (
               payments.slice(0, 5).map((p) => (
                 <div
                   key={p.payment_unique_id}
-                  className="border-b pb-4 mb-4 flex justify-between items-start"
+                  className="border-b pb-4 mb-4 flex justify-between"
                 >
-                  <div className="space-y-1">
-                    <p className="font-medium text-gray-800">{p.flat?.title}</p>
+                  <div>
+                    <p className="font-medium">{p.flat?.title}</p>
                     <p className="text-sm text-gray-500">
                       {p.payment_date?.slice(0, 10)} · {p.payment_method}
                     </p>
                     {renderStatus(p.payment_status)}
                   </div>
 
-                  <div className="text-right space-y-2">
+                  <div className="text-right">
                     <p className="text-green-600 font-semibold text-lg">
                       ${formatMoney(p.amount)}
                     </p>
-
                     {p.payment_status === 'Pending' && (
                       <button
-                        onClick={() => handleVerifyPayment(p.payment_unique_id)}
+                        onClick={() =>
+                          handleVerifyPayment(p.payment_unique_id)
+                        }
                         disabled={verifyingId === p.payment_unique_id}
-                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded mt-2"
                       >
-                        {verifyingId === p.payment_unique_id ? 'Verifying…' : 'Verify'}
+                        {verifyingId === p.payment_unique_id
+                          ? 'Verifying…'
+                          : 'Verify'}
                       </button>
                     )}
                   </div>
@@ -268,7 +309,9 @@ export default function Financials() {
 
           <div className="p-6">
             {expenses.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No expenses recorded yet</p>
+              <p className="text-gray-500 text-center py-8">
+                No expenses recorded yet
+              </p>
             ) : (
               expenses.slice(0, 5).map((e) => (
                 <div
@@ -278,6 +321,24 @@ export default function Financials() {
                   <div>
                     <p className="font-medium">{e.expense_type}</p>
                     <p className="text-sm text-gray-500">{e.description}</p>
+                    <button
+                      onClick={() => {
+                        setEditingExpense(e);
+                        setExpenseData({
+                          flat_unique_id: e.flat_unique_id,
+                          expense_type: e.expense_type,
+                          amount: e.amount,
+                          description: e.description,
+                          vendor_name: e.vendor_name || '',
+                          vendor_contact: e.vendor_contact || '',
+                          expense_unique_id: e.expense_unique_id,
+                        });
+                        setShowExpenseModal(true);
+                      }}
+                      className="text-sm text-blue-600 hover:underline mt-1"
+                    >
+                      Edit
+                    </button>
                   </div>
                   <p className="text-red-600 font-semibold">
                     ${formatMoney(e.amount)}
@@ -305,8 +366,12 @@ export default function Financials() {
           expenseData={expenseData}
           setExpenseData={setExpenseData}
           flats={flats}
-          onClose={() => setShowExpenseModal(false)}
-          onSubmit={handleCreateExpense}
+          mode={editingExpense ? 'edit' : 'create'}
+          onClose={() => {
+            setShowExpenseModal(false);
+            setEditingExpense(null);
+          }}
+          onSubmit={handleSubmitExpense}
         />
       )}
     </div>

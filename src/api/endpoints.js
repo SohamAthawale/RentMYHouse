@@ -17,11 +17,9 @@ export const flatsAPI = {
   getOwnerFlats: (ownerUniqueId) =>
     api.get(`/owner-flats/${ownerUniqueId}`),
 
-  /** 🔑 SEND RENT OTP (THIS WAS MISSING) */
   requestRentOtp: (data) =>
     api.post('/request-rent-otp', data),
 
-  /** 🔑 CONFIRM RENT WITH OTP */
   rentFlat: (data) =>
     api.post('/rent-flat', data),
 
@@ -41,12 +39,19 @@ export const tenantsAPI = {
 /* ---------------- SERVICE REQUESTS ---------------- */
 export const serviceRequestsAPI = {
   create: (data) => api.post('/create-service-request', data),
+
   getTenantRequests: (tenantId) =>
     api.get(`/tenant-service-requests/${tenantId}`),
+
   getOwnerRequests: (ownerId) =>
     api.get(`/owner-service-requests/${ownerId}`),
-  update: (data) => api.put('/update-service-request', data),
-  rate: (data) => api.post('/rate-service-request', data),
+
+  update: (data) =>
+    api.put('/update-service-request', data),
+
+  rate: (data) =>
+    api.post('/rate-service-request', data),
+
   getDetails: (id) =>
     api.get(`/service-request-details/${id}`),
 };
@@ -56,9 +61,16 @@ export const financialsAPI = {
   /* 🟢 TENANT */
   getMyRentPayments: () =>
     api.get('/tenant/rent-payments'),
+
+  recordRentPayment: (data) =>
+    api.post('/tenant/record-rent-payment', data),
+
   /* 🔵 OWNER */
   ownerRecordRent: (data) =>
     api.post('/owner/record-rent', data),
+
+  verifyRentPayment: (paymentUniqueId) =>
+    api.post(`/owner/verify-rent-payment/${paymentUniqueId}`),
 
   getFinancialSummary: (ownerId, year, month) =>
     api.get(`/financial-summary/${ownerId}`, {
@@ -74,23 +86,28 @@ export const financialsAPI = {
   createManualExpense: (data) =>
     api.post('/create-manual-expense', data),
 
-  recordRentPayment: (data) =>
-  api.post('/tenant/record-rent-payment', data),
-  
-  verifyRentPayment: (paymentUniqueId) =>
-  api.post(`/owner/verify-rent-payment/${paymentUniqueId}`),
-
+  /* 🔥 THIS WAS THE BUG – NOW FIXED */
+  updateServiceExpense: (data) =>
+    api.put('/update-service-expense', data),
 };
-
 
 /* ---------------- ADMIN ---------------- */
 export const adminAPI = {
-  getStatistics: () => api.get('/admin/statistics'),
+  getStatistics: () =>
+    api.get('/admin/statistics'),
+
   getUsers: (params) =>
     api.get('/admin/users', { params }),
+
   getUserDetails: (id) =>
     api.get(`/admin/user-details/${id}`),
-  cleanup: () => api.post('/admin/cleanup'),
-  exportData: () => api.get('/admin/export'),
-  deleteUser: (id) => api.delete(`/delete-user/${id}`),
+
+  cleanup: () =>
+    api.post('/admin/cleanup'),
+
+  exportData: () =>
+    api.get('/admin/export'),
+
+  deleteUser: (id) =>
+    api.delete(`/delete-user/${id}`),
 };

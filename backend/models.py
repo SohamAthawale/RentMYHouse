@@ -191,22 +191,26 @@ class ServiceRequest(db.Model):
     __tablename__ = "service_requests"
 
     id = db.Column(db.Integer, primary_key=True)
+
     request_unique_id = db.Column(
         db.String(100),
         unique=True,
         nullable=False,
         default=lambda: f"req-{uuid.uuid4().hex[:8]}",
     )
+
     flat_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("flats.flat_unique_id", ondelete="CASCADE"),
         nullable=False,
     )
+
     tenant_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("users.unique_id", ondelete="CASCADE"),
         nullable=False,
     )
+
     owner_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("users.unique_id", ondelete="CASCADE"),
@@ -216,35 +220,45 @@ class ServiceRequest(db.Model):
     # Core fields
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    category = db.Column(db.String(50), nullable=False)        # Plumbing, Electrical, etc.
+    category = db.Column(db.String(50), nullable=False)
     priority = db.Column(db.String(20), nullable=False, default="Medium")
     status = db.Column(db.String(20), nullable=False, default="Open")
+
     requested_at = db.Column(db.DateTime, default=datetime.utcnow)
     assigned_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
 
     estimated_cost = db.Column(db.Numeric(10, 2))
     actual_cost = db.Column(db.Numeric(10, 2))
+
     contractor_name = db.Column(db.String(100))
     contractor_contact = db.Column(db.String(15))
+
     tenant_notes = db.Column(db.Text)
     owner_notes = db.Column(db.Text)
-    tenant_rating = db.Column(db.Integer)  # 1-5
+    tenant_rating = db.Column(db.Integer)
 
-    # Relationships
+    # 🔥 REQUIRED FLAG (prevents duplicate expenses)
+    expense_created = db.Column(db.Boolean, default=False)
+
+    # ---------------- RELATIONSHIPS ----------------
+
     flat = db.relationship("Flat", back_populates="service_requests")
+
     tenant = db.relationship(
         "User",
         back_populates="service_requests_as_tenant",
         primaryjoin="ServiceRequest.tenant_unique_id == User.unique_id",
         foreign_keys=[tenant_unique_id],
     )
+
     owner = db.relationship(
         "User",
         back_populates="service_requests_as_owner",
         primaryjoin="ServiceRequest.owner_unique_id == User.unique_id",
         foreign_keys=[owner_unique_id],
     )
+
     expenses = db.relationship(
         "ServiceExpense",
         back_populates="service_request",
@@ -257,45 +271,60 @@ class ServiceExpense(db.Model):
     __tablename__ = "service_expenses"
 
     id = db.Column(db.Integer, primary_key=True)
+
     expense_unique_id = db.Column(
         db.String(100),
         unique=True,
         nullable=False,
-        default=lambda: f"exp-{uuid.uuid4().hex[:8]}",
+        default=lambda: f"exp-{uuid.uuid4().hex[:8]}"
     )
+
     service_request_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("service_requests.request_unique_id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=False
     )
+
     flat_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("flats.flat_unique_id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=False
     )
+
     owner_unique_id = db.Column(
         db.String(100),
         db.ForeignKey("users.unique_id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=False
     )
 
-    expense_type = db.Column(db.String(50), nullable=False)  # Maintenance, Repair, etc.
+    expense_type = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=False)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
+
     expense_date = db.Column(db.DateTime, default=datetime.utcnow)
+
     vendor_name = db.Column(db.String(100))
     vendor_contact = db.Column(db.String(15))
+
     receipt_url = db.Column(db.Text)
     is_tax_deductible = db.Column(db.Boolean, default=False)
     notes = db.Column(db.Text)
 
-    # Relationships
-    service_request = db.relationship("ServiceRequest", back_populates="expenses")
-    flat = db.relationship("Flat", back_populates="service_expenses")
+    # ---------------- RELATIONSHIPS ----------------
+
+    service_request = db.relationship(
+        "ServiceRequest",
+        back_populates="expenses"
+    )
+
+    flat = db.relationship(
+        "Flat",
+        back_populates="service_expenses"
+    )
+
     owner = db.relationship(
         "User",
-        primaryjoin="ServiceExpense.owner_unique_id == User.unique_id",
-        foreign_keys=[owner_unique_id],
+        foreign_keys=[owner_unique_id]
     )
 
 
