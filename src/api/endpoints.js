@@ -20,11 +20,14 @@ export const flatsAPI = {
   requestRentOtp: (data) =>
     api.post('/request-rent-otp', data),
 
+  requestVacateOtp: (payload) =>
+  api.post('/request-vacate-otp', payload),
+  
   rentFlat: (data) =>
     api.post('/rent-flat', data),
 
-  vacateFlat: (flatUniqueId) =>
-    api.post(`/vacate-flat/${flatUniqueId}`),
+  vacateFlat: (data) =>
+  api.post('/vacate-flat', data),
 
   deleteFlat: (flatUniqueId) =>
     api.delete(`/delete-flat/${flatUniqueId}`),
@@ -34,6 +37,7 @@ export const flatsAPI = {
 export const tenantsAPI = {
   getAllTenants: () => api.get('/all-tenants'),
   getAvailableTenants: () => api.get('/available-tenants'),
+  
 };
 
 /* ---------------- SERVICE REQUESTS ---------------- */

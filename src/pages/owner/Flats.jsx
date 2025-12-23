@@ -13,12 +13,31 @@ export default function Flats() {
   const [flats, setFlats] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // ============================
+  // GLOBAL ACTION LOCKS
+  // ============================
+  const [isSendingAssignOtp, setIsSendingAssignOtp] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
+
+  const [isSendingVacateOtp, setIsSendingVacateOtp] = useState(false);
+  const [isVacating, setIsVacating] = useState(false);
+
+  // ============================
+  // ASSIGN STATES
+  // ============================
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedFlat, setSelectedFlat] = useState(null);
   const [availableTenants, setAvailableTenants] = useState([]);
   const [selectedTenant, setSelectedTenant] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [otpRequested, setOtpRequested] = useState(false);
+  const [assignOtp, setAssignOtp] = useState('');
+  const [assignOtpRequested, setAssignOtpRequested] = useState(false);
+
+  // ============================
+  // VACATE STATES
+  // ============================
+  const [showVacateModal, setShowVacateModal] = useState(false);
+  const [vacateOtp, setVacateOtp] = useState('');
+  const [vacateOtpRequested, setVacateOtpRequested] = useState(false);
 
   useEffect(() => {
     fetchFlats();
@@ -35,7 +54,9 @@ export default function Flats() {
     }
   };
 
-  // ---------------- DELETE FLAT ----------------
+  // ============================
+  // DELETE FLAT
+  // ============================
   const handleDeleteFlat = async (flatId) => {
     if (!window.confirm('Are you sure you want to permanently delete this flat?')) return;
 
@@ -48,55 +69,68 @@ export default function Flats() {
     }
   };
 
-  // ---------------- ASSIGN FLOW ----------------
+  // ============================
+  // ASSIGN FLOW
+  // ============================
   const openAssignModal = async (flat) => {
     setSelectedFlat(flat);
-    setOtpRequested(false);
-    setOtpCode('');
     setSelectedTenant('');
+    setAssignOtp('');
+    setAssignOtpRequested(false);
+    setIsSendingAssignOtp(false);
+    setIsAssigning(false);
 
     try {
       const res = await tenantsAPI.getAvailableTenants();
-      setAvailableTenants(
-        Array.isArray(res.data?.available_tenants)
-          ? res.data.available_tenants
-          : []
-      );
+      setAvailableTenants(res.data?.available_tenants || []);
       setShowAssignModal(true);
     } catch {
       toast.error('Failed to load tenants');
     }
   };
 
-  const requestOtp = async () => {
-    if (!selectedTenant || !selectedFlat) {
+  const requestAssignOtp = async () => {
+    if (isSendingAssignOtp) return;
+
+    if (!selectedTenant) {
       toast.error('Select a tenant first');
       return;
     }
 
     try {
+      setIsSendingAssignOtp(true);
+
       await flatsAPI.requestRentOtp({
         flat_unique_id: selectedFlat.flat_unique_id,
         tenant_unique_id: selectedTenant,
       });
+
       toast.success('OTP sent to tenant');
-      setOtpRequested(true);
+      setAssignOtpRequested(true);
+
+      // ⏱ cooldown (email delay protection)
+      setTimeout(() => setIsSendingAssignOtp(false), 30000);
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to send OTP');
+      setIsSendingAssignOtp(false);
     }
   };
 
   const confirmAssign = async () => {
-    if (!otpCode || !selectedFlat) {
+    if (isAssigning) return;
+
+    if (!assignOtp) {
       toast.error('Enter OTP');
       return;
     }
 
     try {
+      setIsAssigning(true);
+
       await flatsAPI.rentFlat({
         flat_unique_id: selectedFlat.flat_unique_id,
         tenant_unique_id: selectedTenant,
-        otp_code: otpCode,
+        otp_code: assignOtp,
       });
 
       toast.success('Tenant assigned successfully');
@@ -104,18 +138,69 @@ export default function Flats() {
       fetchFlats();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to assign tenant');
+    } finally {
+      setIsAssigning(false);
     }
   };
 
-  const handleVacate = async (flatId) => {
-    if (!window.confirm('Vacate this flat?')) return;
+  // ============================
+  // VACATE FLOW
+  // ============================
+  const openVacateModal = (flat) => {
+    setSelectedFlat(flat);
+    setVacateOtp('');
+    setVacateOtpRequested(false);
+    setIsSendingVacateOtp(false);
+    setIsVacating(false);
+    setShowVacateModal(true);
+  };
+
+  const requestVacateOtp = async () => {
+    if (isSendingVacateOtp) return;
 
     try {
-      await flatsAPI.vacateFlat(flatId);
-      toast.success('Flat vacated');
+      setIsSendingVacateOtp(true);
+
+      await flatsAPI.requestVacateOtp({
+        flat_unique_id: selectedFlat.flat_unique_id,
+        tenant_unique_id: selectedFlat.rented_to_unique_id,
+      });
+
+      toast.success('OTP sent to tenant');
+      setVacateOtpRequested(true);
+
+      // ⏱ cooldown
+      setTimeout(() => setIsSendingVacateOtp(false), 30000);
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to send OTP');
+      setIsSendingVacateOtp(false);
+    }
+  };
+
+  const confirmVacate = async () => {
+    if (isVacating) return;
+
+    if (!vacateOtp) {
+      toast.error('Enter OTP');
+      return;
+    }
+
+    try {
+      setIsVacating(true);
+
+      await flatsAPI.vacateFlat({
+        flat_unique_id: selectedFlat.flat_unique_id,
+        tenant_unique_id: selectedFlat.rented_to_unique_id,
+        otp_code: vacateOtp,
+      });
+
+      toast.success('Flat vacated successfully');
+      setShowVacateModal(false);
       fetchFlats();
-    } catch {
-      toast.error('Failed to vacate flat');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to vacate flat');
+    } finally {
+      setIsVacating(false);
     }
   };
 
@@ -123,6 +208,7 @@ export default function Flats() {
 
   return (
     <div>
+      {/* HEADER */}
       <div className="flex justify-between mb-6">
         <h1 className="text-3xl font-bold">Manage Flats</h1>
         <button
@@ -133,12 +219,10 @@ export default function Flats() {
         </button>
       </div>
 
+      {/* FLATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {flats.map((flat) => (
-          <div
-            key={flat.flat_unique_id}
-            className="bg-white p-6 rounded-lg shadow"
-          >
+          <div key={flat.flat_unique_id} className="bg-white p-6 rounded-lg shadow">
             <h3 className="text-xl font-semibold">{flat.title}</h3>
             <p>{flat.address}</p>
             <p className="mt-2">Rent: ₹{flat.rent}</p>
@@ -147,7 +231,7 @@ export default function Flats() {
               <>
                 <button
                   onClick={() => openAssignModal(flat)}
-                  className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg w-full"
+                  className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center gap-2"
                 >
                   <UserPlus size={16} /> Assign
                 </button>
@@ -161,8 +245,8 @@ export default function Flats() {
               </>
             ) : (
               <button
-                onClick={() => handleVacate(flat.flat_unique_id)}
-                className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg w-full"
+                onClick={() => openVacateModal(flat)}
+                className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center gap-2"
               >
                 <UserMinus size={16} /> Vacate
               </button>
@@ -171,6 +255,7 @@ export default function Flats() {
         ))}
       </div>
 
+      {/* ASSIGN MODAL */}
       {showAssignModal && selectedFlat && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
@@ -191,27 +276,83 @@ export default function Flats() {
               ))}
             </select>
 
-            {!otpRequested ? (
+            {!assignOtpRequested ? (
               <button
-                onClick={requestOtp}
-                className="bg-blue-600 text-white px-4 py-2 rounded w-full"
+                onClick={requestAssignOtp}
+                disabled={isSendingAssignOtp}
+                className={`px-4 py-2 rounded w-full ${
+                  isSendingAssignOtp
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white'
+                }`}
               >
-                Send OTP
+                {isSendingAssignOtp ? 'Sending OTP…' : 'Send OTP'}
               </button>
             ) : (
               <>
                 <input
                   type="text"
                   placeholder="Enter OTP"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
+                  value={assignOtp}
+                  onChange={(e) => setAssignOtp(e.target.value)}
                   className="w-full border p-2 rounded mb-3"
                 />
                 <button
                   onClick={confirmAssign}
-                  className="bg-green-600 text-white px-4 py-2 rounded w-full"
+                  disabled={isAssigning}
+                  className={`px-4 py-2 rounded w-full ${
+                    isAssigning
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 text-white'
+                  }`}
                 >
-                  Confirm Assignment
+                  {isAssigning ? 'Assigning…' : 'Confirm Assignment'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VACATE MODAL */}
+      {showVacateModal && selectedFlat && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">
+              Vacate Flat – {selectedFlat.title}
+            </h2>
+
+            {!vacateOtpRequested ? (
+              <button
+                onClick={requestVacateOtp}
+                disabled={isSendingVacateOtp}
+                className={`px-4 py-2 rounded w-full ${
+                  isSendingVacateOtp
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 text-white'
+                }`}
+              >
+                {isSendingVacateOtp ? 'Sending OTP…' : 'Send OTP'}
+              </button>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Enter OTP"
+                  value={vacateOtp}
+                  onChange={(e) => setVacateOtp(e.target.value)}
+                  className="w-full border p-2 rounded mb-3"
+                />
+                <button
+                  onClick={confirmVacate}
+                  disabled={isVacating}
+                  className={`px-4 py-2 rounded w-full ${
+                    isVacating
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-yellow-600 text-white'
+                  }`}
+                >
+                  {isVacating ? 'Processing…' : 'Confirm Vacate'}
                 </button>
               </>
             )}

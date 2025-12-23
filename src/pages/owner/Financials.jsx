@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { financialsAPI, flatsAPI } from '../../api/endpoints';
 import toast from 'react-hot-toast';
@@ -21,6 +21,14 @@ export default function Financials() {
 
   const [verifyingId, setVerifyingId] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
+
+  // 🔐 ADDITIVE: spam-prevention flags
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+  const [isSavingExpense, setIsSavingExpense] = useState(false);
+
+  // ⏳ ADDITIVE: cooldown refs (no rerender)
+  const paymentCooldownRef = useRef(false);
+  const expenseCooldownRef = useRef(false);
 
   const [paymentData, setPaymentData] = useState({
     flat_unique_id: '',
@@ -79,12 +87,18 @@ export default function Financials() {
   // ---------------- PAYMENTS ----------------
 
   const handleRecordPayment = async () => {
+    // 🔒 ADDITIVE guard
+    if (isRecordingPayment || paymentCooldownRef.current) return;
+
     if (!paymentData.flat_unique_id || !paymentData.amount_paid) {
       toast.error('Please fill in all fields');
       return;
     }
 
     try {
+      setIsRecordingPayment(true);
+      paymentCooldownRef.current = true;
+
       await financialsAPI.ownerRecordRent({
         flat_unique_id: paymentData.flat_unique_id,
         amount: parseFloat(paymentData.amount_paid),
@@ -102,10 +116,19 @@ export default function Financials() {
     } catch (error) {
       console.error(error);
       toast.error('Failed to record payment');
+    } finally {
+      setIsRecordingPayment(false);
+
+      // ⏳ ADDITIVE cooldown
+      setTimeout(() => {
+        paymentCooldownRef.current = false;
+      }, 3000);
     }
   };
 
   const handleVerifyPayment = async (paymentId) => {
+    if (verifyingId) return;
+
     try {
       setVerifyingId(paymentId);
       await financialsAPI.verifyRentPayment(paymentId);
@@ -122,14 +145,19 @@ export default function Financials() {
   // ---------------- EXPENSES (CREATE + EDIT) ----------------
 
   const handleSubmitExpense = async () => {
+    // 🔒 ADDITIVE guard
+    if (isSavingExpense || expenseCooldownRef.current) return;
+
     if (!expenseData.expense_type || !expenseData.amount) {
       toast.error('Please fill in all required fields');
       return;
     }
 
     try {
+      setIsSavingExpense(true);
+      expenseCooldownRef.current = true;
+
       if (editingExpense) {
-        // ✏️ EDIT EXPENSE
         await financialsAPI.updateServiceExpense({
           expense_unique_id: expenseData.expense_unique_id,
           expense_type: expenseData.expense_type,
@@ -141,7 +169,6 @@ export default function Financials() {
 
         toast.success('Expense updated successfully');
       } else {
-        // ➕ CREATE EXPENSE
         await financialsAPI.createManualExpense({
           flat_unique_id: expenseData.flat_unique_id,
           expense_type: expenseData.expense_type,
@@ -169,6 +196,13 @@ export default function Financials() {
     } catch (error) {
       console.error(error);
       toast.error('Failed to save expense');
+    } finally {
+      setIsSavingExpense(false);
+
+      // ⏳ ADDITIVE cooldown
+      setTimeout(() => {
+        expenseCooldownRef.current = false;
+      }, 3000);
     }
   };
 
@@ -205,7 +239,8 @@ export default function Financials() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowPaymentModal(true)}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg"
+            disabled={isRecordingPayment}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={20} />
             Record Payment
@@ -216,7 +251,8 @@ export default function Financials() {
               setEditingExpense(null);
               setShowExpenseModal(true);
             }}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg"
+            disabled={isSavingExpense}
+            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={20} />
             Add Expense
@@ -287,7 +323,7 @@ export default function Financials() {
                           handleVerifyPayment(p.payment_unique_id)
                         }
                         disabled={verifyingId === p.payment_unique_id}
-                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded mt-2"
+                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded mt-2 disabled:opacity-50"
                       >
                         {verifyingId === p.payment_unique_id
                           ? 'Verifying…'
@@ -358,6 +394,7 @@ export default function Financials() {
           flats={flats}
           onClose={() => setShowPaymentModal(false)}
           onSubmit={handleRecordPayment}
+          submitting={isRecordingPayment}
         />
       )}
 
@@ -372,6 +409,7 @@ export default function Financials() {
             setEditingExpense(null);
           }}
           onSubmit={handleSubmitExpense}
+          submitting={isSavingExpense}
         />
       )}
     </div>

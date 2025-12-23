@@ -268,15 +268,20 @@ from datetime import datetime, timedelta
 from models import db, OTPVerification
 from utilities import send_email
 
-def _create_and_email_otp(email: str, purpose: str = "email_signup", extra_message: str = "") -> None:
+def _create_and_email_otp(
+    email: str,
+    purpose: str = "email_signup",
+    extra_message: str = "",
+    user_unique_id: str | None = None,   # ✅ NEW (OPTIONAL)
+) -> None:
     """
     Create and email a 6-digit OTP with customized messages based on the purpose.
 
-    Args:
-        email (str): Recipient email address.
-        purpose (str): OTP purpose context (e.g., 'email_signup', 'rent_approval', 'password_reset').
-        extra_message (str): Additional context to include in the email body (optional).
+    Backward compatible:
+    - Old calls work (email + purpose)
+    - New calls may include user_unique_id
     """
+
     otp_code = f"{random.randint(0, 999999):06d}"
 
     otp = OTPVerification(
@@ -286,6 +291,11 @@ def _create_and_email_otp(email: str, purpose: str = "email_signup", extra_messa
         expires_at=datetime.utcnow() + timedelta(minutes=10),
         is_used=False
     )
+
+    # ✅ Attach user if provided (vacate / rent flows)
+    if user_unique_id:
+        otp.user_unique_id = user_unique_id
+
     db.session.add(otp)
     db.session.commit()
 
@@ -297,12 +307,13 @@ def _create_and_email_otp(email: str, purpose: str = "email_signup", extra_messa
             f"Dear user,\n\n"
             f"Your one-time code to approve renting a flat {extra_message} is:\n\n"
             f"{otp_code}\n\n"
-            "Please share this code only with the flat owner to confirm your approval.\n"
+            "Please share this code only with the flat owner.\n"
             f"{expiration_text}\n\n"
             "If you did not request this code, please contact support immediately.\n\n"
             "Thank you,\n"
             "Rental Management Team"
         )
+
     elif purpose == "password_reset":
         subject = "Your Password Reset Verification Code"
         body = (
@@ -315,6 +326,7 @@ def _create_and_email_otp(email: str, purpose: str = "email_signup", extra_messa
             "Thank you,\n"
             "Rental Management Team"
         )
+
     elif purpose == "email_signup":
         subject = "Your Account Verification Code"
         body = (
@@ -328,8 +340,21 @@ def _create_and_email_otp(email: str, purpose: str = "email_signup", extra_messa
             "Best regards,\n"
             "Rental Management Team"
         )
+
+    elif purpose == "VACATE_FLAT":
+        subject = "Flat Vacate Confirmation OTP"
+        body = (
+            f"Dear user,\n\n"
+            f"You requested to vacate your flat.\n\n"
+            f"Your OTP to confirm this action is:\n\n"
+            f"{otp_code}\n\n"
+            f"Please enter this code in the app to proceed.\n\n"
+            f"{expiration_text}\n\n"
+            "If you did not request this, contact support immediately.\n\n"
+            "Rental Management Team"
+        )
+
     else:
-        # Generic fallback message
         subject = "Your Verification Code"
         body = (
             f"Dear user,\n\n"
@@ -341,12 +366,7 @@ def _create_and_email_otp(email: str, purpose: str = "email_signup", extra_messa
             "Rental Management Team"
         )
 
-    send_email(
-        to=email,
-        subject=subject,
-        body=body
-    )
-
+    send_email(to=email, subject=subject, body=body)
 
 def request_otp(email, purpose="email_signup"):
     """Resend code (rate-limit on frontend)."""
@@ -357,45 +377,46 @@ def request_otp(email, purpose="email_signup"):
         db.session.rollback()
         return {"status": "fail", "message": f"OTP error: {e}"}, 500
 
-def verify_otp(email, otp_code, purpose="email_signup"):
-    """
-    Validate a six-digit OTP code for the specified email and purpose.
-
-    Args:
-        email (str): User's email address.
-        otp_code (str or int): The OTP code sent to user's email.
-        purpose (str): Purpose of OTP, default is "email_signup".
-
-    Returns:
-        tuple: (response_dict, HTTP status code)
-    """
+def verify_otp(email, otp_code, purpose="email_signup", user_unique_id=None):
     try:
         email = email.lower().strip()
         otp_code_str = str(otp_code).zfill(6)
-        row = OTPVerification.query.filter_by(
+
+        query = OTPVerification.query.filter_by(
             email=email,
             otp_code=otp_code_str,
             purpose=purpose,
             is_used=False
-        ).first()
+        )
+
+        # ✅ ONLY filter if user_unique_id is a valid UUID string
+        if isinstance(user_unique_id, str) and user_unique_id.strip():
+            query = query.filter(
+                OTPVerification.user_unique_id == user_unique_id
+            )
+
+        row = query.first()
+
         if not row or row.expires_at < datetime.utcnow():
             return {"status": "fail", "message": "Invalid or expired code"}, 400
+
         row.mark_used()
-        user = User.query.filter_by(email=email).first()
-        if user:
-            user.is_verified = True
-            db.session.commit()
-        else:
-            logging.warning(f"OTP verified but no user found with email: {email}")
-        # Always convert UUID to string before returning!
+
+        if purpose == "email_signup":
+            user = User.query.filter_by(email=email).first()
+            if user:
+                user.is_verified = True
+
+        db.session.commit()
+
         return {
             "status": "success",
             "message": "Verified!",
             "otp_id": str(row.unique_id) if row.unique_id else None
         }, 200
+
     except Exception as e:
         db.session.rollback()
-        logging.error(f"OTP verify error: {str(e)}")
         return {"status": "fail", "message": f"Verification failed: {str(e)}"}, 500
 
 def safe_serialize(obj):

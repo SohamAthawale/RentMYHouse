@@ -410,13 +410,25 @@ class OTPVerification(db.Model):
     __tablename__ = "otp_verifications"
 
     unique_id = db.Column(GUID, primary_key=True, default=uuid.uuid4)
+
     email = db.Column(db.String(120), index=True, nullable=False)
+
+    # ✅ NEW (OPTIONAL, BACKWARD-COMPATIBLE)
+    user_unique_id = db.Column(
+        db.String(50),   # <-- STRING, not GUID
+        db.ForeignKey("users.unique_id"),
+        nullable=True,
+        index=True
+    )
+
     otp_code = db.Column(db.String(6), nullable=False)
     purpose = db.Column(db.String(40), nullable=False, default="email_signup")
     is_used = db.Column(db.Boolean, default=False)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(
-        db.DateTime, nullable=False,
+        db.DateTime,
+        nullable=False,
         default=lambda: datetime.utcnow() + timedelta(minutes=10)
     )
 
@@ -424,6 +436,7 @@ class OTPVerification(db.Model):
         """Mark this OTP as used and persist immediately."""
         self.is_used = True
         db.session.commit()
+
 
 
 class RentAgreement(db.Model):

@@ -102,7 +102,6 @@ def list_flats():
             "address": flat.address,
             "rent": str(flat.rent),
 
-            # 🔹 NEW ML-READY PROPERTY FEATURES
             "bedrooms": flat.bedrooms,
             "bathrooms": flat.bathrooms,
             "area_sqft": flat.area_sqft,
@@ -110,18 +109,24 @@ def list_flats():
             "property_type": flat.property_type,
 
             "created_at": flat.created_at.isoformat(),
+
             "owner": {
                 "unique_id": flat.owner.unique_id,
                 "username": flat.owner.username,
                 "contact_no": flat.owner.contact_no
             } if flat.owner else None,
+
             "tenant": {
                 "unique_id": flat.tenant.unique_id,
                 "username": flat.tenant.username,
                 "contact_no": flat.tenant.contact_no
             } if flat.tenant else None,
-            "is_rented": flat.rented_to_unique_id is not None
-            }
+
+            "is_rented": flat.rented_to_unique_id is not None,
+
+            "rented_to_unique_id": flat.rented_to_unique_id  # ✅ ADD THIS
+        }
+
 
             flats_data.append(flat_info)
 
@@ -315,67 +320,100 @@ def update_rented_date(flat_unique_id: str, owner_unique_id: str, rented_date: d
         db.session.rollback()
         return {"status": "fail", "message": f"Failed to update rented date: {str(e)}"}, 500
 
-def vacate_flat(flat_unique_id):
+from datetime import datetime
+from models import db, Flat, User, OTPVerification
+from utilities import send_email
+
+def vacate_flat(flat_unique_id: str, tenant_unique_id: str, otp_code: str):
     """
-    Vacate a flat (remove tenant).
-    
+    Vacate a flat after OTP verification.
+
     Args:
-        flat_unique_id (str): Flat's unique identifier
-    
+        flat_unique_id (str): Flat unique identifier
+        tenant_unique_id (str): Tenant vacating the flat
+        otp_code (str): OTP for verification
+
     Returns:
         tuple: (response_dict, status_code)
     """
     try:
-        # Fetch the flat
+        # Fetch flat
         flat = Flat.query.filter_by(flat_unique_id=flat_unique_id).first()
         if not flat:
             return {"status": "fail", "message": "Flat not found"}, 404
-        
+
         if not flat.rented_to_unique_id:
             return {"status": "fail", "message": "Flat is not currently rented"}, 400
-        
-        # Fetch tenant and owner
-        tenant = User.query.filter_by(unique_id=flat.rented_to_unique_id).first()
+
+        if flat.rented_to_unique_id != tenant_unique_id:
+            return {"status": "fail", "message": "Tenant mismatch for this flat"}, 403
+
+        # Fetch tenant
+        tenant = User.query.filter_by(unique_id=tenant_unique_id).first()
+        if not tenant:
+            return {"status": "fail", "message": "Tenant not found"}, 404
+
+        if tenant.account_type != "Tenant":
+            return {"status": "fail", "message": "User is not a tenant"}, 400
+
+        # 🔐 OTP Verification
+        otp_entry = OTPVerification.query.filter_by(
+            user_unique_id=tenant_unique_id,
+            otp_code=otp_code,
+            purpose="VACATE_FLAT",
+            is_used=False
+        ).first()
+
+        if not otp_entry:
+            return {"status": "fail", "message": "Invalid or expired OTP"}, 400
+
+        if otp_entry.expires_at < datetime.utcnow():
+            return {"status": "fail", "message": "OTP has expired"}, 400
+
+        # Mark OTP as used
+        otp_entry.is_used = True
+
+        # Fetch owner
         owner = User.query.filter_by(unique_id=flat.owner_unique_id).first()
-        
-        # Clear rental info
-        tenant_name = tenant.username if tenant else "Unknown"
-        owner_name = owner.username if owner else "Unknown"
-        
-        if tenant:
-            tenant.currently_rented = False
-        
+
+        tenant_name = tenant.username
+        owner_name = owner.username if owner else "Owner"
+
+        # Vacate logic
+        tenant.currently_rented = False
         flat.rented_to_unique_id = None
-        
+        flat.rented_date = None
+        flat.deposit_amount = None
+
         db.session.commit()
-        
-        # Send notification emails to tenant and owner
-        if tenant:
-            send_email(
-                to=tenant.email,
-                subject="Flat Vacated Confirmation",
-                body=(
-                    f"Dear {tenant.username},\n\n"
-                    f"You have successfully vacated the flat '{flat.title}'.\n"
-                    f"Vacate date: {datetime.utcnow().strftime('%Y-%m-%d')}.\n\n"
-                    "Thank you for using our system."
-                )
+
+        # 📧 Notifications
+        send_email(
+            to=tenant.email,
+            subject="Flat Vacated Successfully",
+            body=(
+                f"Dear {tenant.username},\n\n"
+                f"You have successfully vacated the flat '{flat.title}'.\n"
+                f"Vacate Date: {datetime.utcnow().strftime('%Y-%m-%d')}.\n\n"
+                "Thank you for using our platform."
             )
+        )
+
         if owner:
             send_email(
                 to=owner.email,
-                subject="Flat Vacated Notification",
+                subject="Tenant Vacated Flat",
                 body=(
                     f"Dear {owner.username},\n\n"
-                    f"The flat '{flat.title}' has been vacated by {tenant_name}.\n"
-                    f"Vacate date: {datetime.utcnow().strftime('%Y-%m-%d')}.\n\n"
-                    "You may now re-rent or make the property available."
+                    f"The tenant {tenant_name} has vacated your flat '{flat.title}'.\n"
+                    f"Vacate Date: {datetime.utcnow().strftime('%Y-%m-%d')}.\n\n"
+                    "The flat is now available for re-renting."
                 )
             )
-        
+
         return {
             "status": "success",
-            "message": f"Flat '{flat.title}' vacated by {tenant_name}",
+            "message": f"Flat '{flat.title}' vacated successfully by {tenant_name}",
             "flat_details": {
                 "flat_unique_id": flat.flat_unique_id,
                 "title": flat.title,
@@ -383,7 +421,7 @@ def vacate_flat(flat_unique_id):
                 "is_available": True
             }
         }, 200
-    
+
     except Exception as e:
         db.session.rollback()
         return {"status": "fail", "message": f"Failed to vacate flat: {str(e)}"}, 500

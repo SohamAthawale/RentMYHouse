@@ -9,7 +9,7 @@ if PROJECT_ROOT not in sys.path:
 from flask import Flask, request, jsonify, session
 import io
 from analytics.rent_predictor import predict_rent_logic
-from newlogin import cleanup_expired_otps_only, cleanup_unverified_accounts, request_otp, verify_otp
+from newlogin import _create_and_email_otp, cleanup_expired_otps_only, cleanup_unverified_accounts, request_otp, verify_otp
 from flask import Flask, request, jsonify, send_file
 from sqlalchemy import text
 from models import Flat, User, db
@@ -277,11 +277,70 @@ def tenant_rent_history(tenant_unique_id):
     result, status_code = get_rent_payment_history(tenant_unique_id=tenant_unique_id)
     return jsonify(result), status_code
 
-@app.route('/vacate-flat/<flat_unique_id>', methods=['POST'])
-def vacate_flat_route(flat_unique_id):
-    """Vacate a flat."""
-    result, status_code = vacate_flat(flat_unique_id)
-    return jsonify(result), status_code
+@app.route('/vacate-flat', methods=['POST'])
+def vacate_flat_route():
+    try:
+        data = request.get_json()
+        if not data:
+            return {"status": "fail", "message": "No data provided"}, 400
+
+        flat_unique_id = data.get("flat_unique_id")
+        tenant_unique_id = data.get("tenant_unique_id")
+        otp_code = data.get("otp_code")
+
+        if not flat_unique_id or not tenant_unique_id or not otp_code:
+            return {"status": "fail", "message": "Missing required fields"}, 400
+
+        result, status_code = vacate_flat(
+            flat_unique_id=flat_unique_id,
+            tenant_unique_id=tenant_unique_id,
+            otp_code=otp_code
+        )
+
+        return result, status_code
+
+    except Exception as e:
+        return {"status": "fail", "message": str(e)}, 500
+
+@app.route('/request-vacate-otp', methods=['POST'])
+def request_vacate_otp():
+    try:
+        data = request.get_json()
+        if not data:
+            return {"status": "fail", "message": "No data provided"}, 400
+
+        flat_unique_id = data.get("flat_unique_id")
+        tenant_unique_id = data.get("tenant_unique_id")
+
+        if not flat_unique_id or not tenant_unique_id:
+            return {"status": "fail", "message": "Missing required fields"}, 400
+
+        flat = Flat.query.filter_by(flat_unique_id=flat_unique_id).first()
+        if not flat:
+            return {"status": "fail", "message": "Flat not found"}, 404
+
+        if flat.rented_to_unique_id != tenant_unique_id:
+            return {"status": "fail", "message": "Tenant mismatch"}, 403
+
+        tenant = User.query.filter_by(unique_id=tenant_unique_id).first()
+        if not tenant:
+            return {"status": "fail", "message": "Tenant not found"}, 404
+
+        # 🔐 CREATE OTP
+        _create_and_email_otp(
+            email=tenant.email,
+            user_unique_id=tenant.unique_id,
+            purpose="VACATE_FLAT"
+        )
+
+        return {
+            "status": "success",
+            "message": "OTP sent successfully"
+        }, 200
+
+    except Exception as e:
+        print("VACATE OTP ERROR:", e)  # 👈 IMPORTANT
+        return {"status": "fail", "message": str(e)}, 500
 
 @app.route('/delete-flat/<flat_unique_id>', methods=['DELETE'])
 def delete_flat_route(flat_unique_id):
