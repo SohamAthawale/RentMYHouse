@@ -14,24 +14,20 @@ export const flatsAPI = {
 
   listFlats: () => api.get('/list-flats'),
 
-  getOwnerFlats: (ownerUniqueId) =>
-    api.get(`/owner-flats/${ownerUniqueId}`),
+  getOwnerFlats: () => api.get('/owner-flats'),
 
-  requestRentOtp: (data) =>
-    api.post('/request-rent-otp', data),
+  requestRentOtp: (data) => api.post('/request-rent-otp', data),
 
-  requestVacateOtp: (payload) =>
-  api.post('/request-vacate-otp', payload),
-  
-  rentFlat: (data) =>
-    api.post('/rent-flat', data),
+  requestVacateOtp: (payload) => api.post('/request-vacate-otp', payload),
 
-  vacateFlat: (data) =>
-  api.post('/vacate-flat', data),
+  rentFlat: (data) => api.post('/rent-flat', data),
+
+  vacateFlat: (data) => api.post('/vacate-flat', data),
 
   deleteFlat: (flatUniqueId) =>
     api.delete(`/delete-flat/${flatUniqueId}`),
 };
+
 
 /* ---------------- TENANTS ---------------- */
 export const tenantsAPI = {

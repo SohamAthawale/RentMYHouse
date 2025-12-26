@@ -43,16 +43,26 @@ export default function Flats() {
     fetchFlats();
   }, []);
 
-  const fetchFlats = async () => {
-    try {
-      const res = await flatsAPI.listFlats();
+const fetchFlats = async () => {
+  try {
+    let res;
+
+    if (user?.account_type === 'Owner') {
+      // 🔒 Owners can ONLY see their own flats
+      res = await flatsAPI.getOwnerFlats();
       setFlats(res.data?.flats || []);
-    } catch {
-      setFlats([]);
-    } finally {
-      setLoading(false);
+    } else {
+      // 🏘 Tenants / public view
+      res = await flatsAPI.listFlats();
+      setFlats(res.data?.flats || []);
     }
-  };
+  } catch (err) {
+    console.error(err);
+    setFlats([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ============================
   // DELETE FLAT

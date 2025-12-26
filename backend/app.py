@@ -15,7 +15,7 @@ from sqlalchemy import text
 from models import Flat, User, db
 from newlogin import signup_user, login_user, get_user_profile, change_password, update_profile
 from ownerreqests import (
-    create_flat, list_flats, get_owner_flats, rent_flat, update_rented_date, vacate_flat, 
+    create_flat, list_flats, rent_flat, update_rented_date, vacate_flat, 
     delete_flat, list_all_tenants, list_available_tenants,request_rent_otp, verify_rent_payment
 )
 from servicerequests import (
@@ -211,11 +211,80 @@ def list_flats_route():
     result, status_code = list_flats()
     return jsonify(result), status_code
 
-@app.route('/owner-flats/<owner_unique_id>', methods=['GET'])
-def get_owner_flats_route(owner_unique_id):
-    """Get all flats owned by a specific owner."""
-    result, status_code = get_owner_flats(owner_unique_id)
-    return jsonify(result), status_code
+from flask import session, jsonify
+
+@app.route('/owner-flats', methods=['GET'])
+def owner_flats_route():
+    """
+    Get flats ONLY for the logged-in owner (session-based auth)
+    """
+    try:
+        # 🔐 1. Read owner identity from session
+        owner_unique_id = session.get('user_unique_id')
+        account_type = session.get('account_type')
+
+        if not owner_unique_id:
+            return {"status": "fail", "message": "Not authenticated"}, 401
+
+        if account_type != 'Owner':
+            return {"status": "fail", "message": "Access denied"}, 403
+
+        owner = User.query.filter_by(unique_id=owner_unique_id).first()
+        if not owner:
+            return {"status": "fail", "message": "Owner not found"}, 404
+
+        flats = owner.flats_owned.all()
+
+        flats_data = []
+        total_rent = 0
+        occupied_count = 0
+
+        for flat in flats:
+            is_rented = flat.rented_to_unique_id is not None
+            if is_rented:
+                occupied_count += 1
+                total_rent += float(flat.rent)
+
+            flats_data.append({
+                "flat_unique_id": flat.flat_unique_id,
+                "title": flat.title,
+                "address": flat.address,
+                "rent": str(flat.rent),
+
+                # ML-READY FEATURES
+                "bedrooms": flat.bedrooms,
+                "bathrooms": flat.bathrooms,
+                "area_sqft": flat.area_sqft,
+                "furnishing": flat.furnishing,
+                "property_type": flat.property_type,
+
+                "created_at": flat.created_at.isoformat(),
+
+                "is_rented": is_rented,
+                "rented_to_unique_id": flat.rented_to_unique_id,  # ✅ ADD THIS
+
+                "tenant": {
+                    "unique_id": flat.tenant.unique_id,
+                    "username": flat.tenant.username,
+                    "contact_no": flat.tenant.contact_no
+                } if flat.tenant else None
+            })
+
+
+        return {
+            "status": "success",
+            "flats": flats_data,
+            "summary": {
+                "total_properties": len(flats),
+                "occupied_properties": occupied_count,
+                "vacant_properties": len(flats) - occupied_count,
+                "monthly_income": total_rent,
+                "occupancy_rate": round((occupied_count / len(flats) * 100), 2) if flats else 0
+            }
+        }, 200
+
+    except Exception as e:
+        return {"status": "fail", "message": str(e)}, 500
 
 
 # Modify existing /rent-flat route:

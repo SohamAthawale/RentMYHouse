@@ -151,150 +151,174 @@ export default function TenantDashboard() {
   ];
 
   return (
-    <div className="space-y-10">
-      <h1 className="text-3xl font-bold">Tenant Dashboard</h1>
+  <div className="space-y-8 px-3 sm:px-0">
+    {/* ========================= */}
+    {/* HEADER */}
+    {/* ========================= */}
+    <h1 className="text-2xl md:text-3xl font-bold">
+      Tenant Dashboard
+    </h1>
 
-      {/* ========================= */}
-      {/* STATS */}
-      {/* ========================= */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {cards.map((card, i) => (
-          <div key={i} className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-500 text-sm">{card.label}</p>
-            <div className="flex justify-between items-center mt-2">
-              <p className="text-3xl font-bold">{card.value}</p>
-              <card.icon className="text-gray-400" size={24} />
-            </div>
+    {/* ========================= */}
+    {/* STATS */}
+    {/* ========================= */}
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+      {cards.map((card, i) => (
+        <div
+          key={i}
+          className="bg-white p-4 md:p-6 rounded-lg shadow"
+        >
+          <p className="text-gray-500 text-xs md:text-sm">
+            {card.label}
+          </p>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xl md:text-3xl font-bold">
+              {card.value}
+            </p>
+            <card.icon className="text-gray-400" size={20} />
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
+    </div>
 
-      {/* ========================= */}
-      {/* AVAILABLE FLATS */}
-      {/* ========================= */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-          <Home /> Available Flats
-        </h2>
+    {/* ========================= */}
+    {/* AVAILABLE FLATS */}
+    {/* ========================= */}
+    <div>
+      <h2 className="text-xl md:text-2xl font-semibold mb-4 flex items-center gap-2">
+        <Home size={20} /> Available Flats
+      </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {flats.map(flat => {
-            const predicted = predictions[flat.flat_unique_id];
-            if (!predicted) return null;
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        {flats.map(flat => {
+          const predicted = predictions[flat.flat_unique_id];
+          if (!predicted) return null;
 
-            const quoted = Number(flat.rent);
-            const { text, color } = getPriceLabel(quoted, predicted);
+          const quoted = Number(flat.rent);
+          const { text, color } = getPriceLabel(quoted, predicted);
 
-            return (
-              <div key={flat.flat_unique_id} className="bg-white p-6 rounded-lg shadow">
-                <h3 className="font-semibold text-lg">{flat.title}</h3>
-                <p className="text-gray-500">{flat.address}</p>
+          return (
+            <div
+              key={flat.flat_unique_id}
+              className="bg-white p-4 md:p-6 rounded-lg shadow"
+            >
+              <h3 className="font-semibold text-base md:text-lg">
+                {flat.title}
+              </h3>
+              <p className="text-gray-500 text-sm">
+                {flat.address}
+              </p>
 
-                <div className="mt-3 space-y-1">
-                  <p>Quoted Rent: <strong>₹{quoted}</strong></p>
-                  <p>Predicted Rent: <strong>₹{predicted}</strong></p>
-                </div>
-
-                <p className={`mt-2 font-bold ${color}`}>{text}</p>
+              <div className="mt-3 space-y-1 text-sm md:text-base">
+                <p>
+                  Quoted Rent: <strong>₹{quoted}</strong>
+                </p>
+                <p>
+                  Predicted Rent: <strong>₹{predicted}</strong>
+                </p>
               </div>
-            );
-          })}
+
+              <p className={`mt-2 font-bold text-sm md:text-base ${color}`}>
+                {text}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* ========================= */}
+    {/* IDEAL RENT PREDICTOR */}
+    {/* ========================= */}
+    <div className="bg-white p-4 md:p-6 rounded-lg shadow">
+      <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
+        <TrendingUp size={20} /> Rent Predictor
+      </h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Bedrooms */}
+        <div>
+          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+            Bedrooms (BHK)
+          </label>
+          <input
+            type="number"
+            min="1"
+            placeholder="e.g. 2"
+            value={idealForm.bedrooms}
+            onChange={e =>
+              setIdealForm({ ...idealForm, bedrooms: e.target.value })
+            }
+            className="border p-2 rounded w-full text-sm"
+          />
+        </div>
+
+        {/* Bathrooms */}
+        <div>
+          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+            Bathrooms
+          </label>
+          <input
+            type="number"
+            min="1"
+            placeholder="e.g. 2"
+            value={idealForm.bathrooms}
+            onChange={e =>
+              setIdealForm({ ...idealForm, bathrooms: e.target.value })
+            }
+            className="border p-2 rounded w-full text-sm"
+          />
+        </div>
+
+        {/* Area */}
+        <div>
+          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+            Area (sq ft)
+          </label>
+          <input
+            type="number"
+            min="300"
+            placeholder="e.g. 750"
+            value={idealForm.area_sqft}
+            onChange={e =>
+              setIdealForm({ ...idealForm, area_sqft: e.target.value })
+            }
+            className="border p-2 rounded w-full text-sm"
+          />
+        </div>
+
+        {/* Furnishing */}
+        <div>
+          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+            Furnishing
+          </label>
+          <select
+            value={idealForm.furnishing}
+            onChange={e =>
+              setIdealForm({ ...idealForm, furnishing: e.target.value })
+            }
+            className="border p-2 rounded w-full text-sm"
+          >
+            <option>Unfurnished</option>
+            <option>Semi-Furnished</option>
+            <option>Fully-Furnished</option>
+          </select>
         </div>
       </div>
 
-      {/* ========================= */}
-{/* IDEAL RENT PREDICTOR */}
-{/* ========================= */}
-<div className="bg-white p-6 rounded-lg shadow">
-  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-    <TrendingUp /> Rent Predictor
-  </h2>
-
-  <div className="grid grid-cols-2 gap-4">
-    {/* Bedrooms */}
-    <div>
-      <label className="block text-sm text-gray-600 mb-1">
-        Bedrooms (BHK)
-      </label>
-      <input
-        type="number"
-        min="1"
-        placeholder="e.g. 2"
-        value={idealForm.bedrooms}
-        onChange={e =>
-          setIdealForm({ ...idealForm, bedrooms: e.target.value })
-        }
-        className="border p-2 rounded w-full"
-      />
-    </div>
-
-    {/* Bathrooms */}
-    <div>
-      <label className="block text-sm text-gray-600 mb-1">
-        Bathrooms
-      </label>
-      <input
-        type="number"
-        min="1"
-        placeholder="e.g. 2"
-        value={idealForm.bathrooms}
-        onChange={e =>
-          setIdealForm({ ...idealForm, bathrooms: e.target.value })
-        }
-        className="border p-2 rounded w-full"
-      />
-    </div>
-
-    {/* Area */}
-    <div>
-      <label className="block text-sm text-gray-600 mb-1">
-        Area (sq ft)
-      </label>
-      <input
-        type="number"
-        min="300"
-        placeholder="e.g. 750"
-        value={idealForm.area_sqft}
-        onChange={e =>
-          setIdealForm({ ...idealForm, area_sqft: e.target.value })
-        }
-        className="border p-2 rounded w-full"
-      />
-    </div>
-
-    {/* Furnishing */}
-    <div>
-      <label className="block text-sm text-gray-600 mb-1">
-        Furnishing
-      </label>
-      <select
-        value={idealForm.furnishing}
-        onChange={e =>
-          setIdealForm({ ...idealForm, furnishing: e.target.value })
-        }
-        className="border p-2 rounded w-full"
+      <button
+        onClick={handleIdealPredict}
+        className="mt-6 w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
       >
-        <option>Unfurnished</option>
-        <option>Semi-Furnished</option>
-        <option>Fully-Furnished</option>
-      </select>
+        Predict Rent
+      </button>
+
+      {idealPrediction && (
+        <p className="mt-4 text-base md:text-lg">
+          Estimated Rent: <strong>₹{idealPrediction}</strong>
+        </p>
+      )}
     </div>
   </div>
-
-  <button
-    onClick={handleIdealPredict}
-    className="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-  >
-    Predict Rent
-  </button>
-
-  {idealPrediction && (
-    <p className="mt-4 text-lg">
-      Estimated Rent: <strong>₹{idealPrediction}</strong>
-    </p>
-  )}
-</div>
-
-    </div>
-  );
+);
 }
