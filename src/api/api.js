@@ -2,11 +2,11 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:5001',
+  baseURL: '/api', // ✅ ALWAYS
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // 🔥 REQUIRED
+  withCredentials: true,
 });
 
 api.interceptors.response.use(

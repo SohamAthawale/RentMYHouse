@@ -22,11 +22,9 @@ export default function Financials() {
   const [verifyingId, setVerifyingId] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
 
-  // 🔐 ADDITIVE: spam-prevention flags
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
   const [isSavingExpense, setIsSavingExpense] = useState(false);
 
-  // ⏳ ADDITIVE: cooldown refs (no rerender)
   const paymentCooldownRef = useRef(false);
   const expenseCooldownRef = useRef(false);
 
@@ -87,7 +85,6 @@ export default function Financials() {
   // ---------------- PAYMENTS ----------------
 
   const handleRecordPayment = async () => {
-    // 🔒 ADDITIVE guard
     if (isRecordingPayment || paymentCooldownRef.current) return;
 
     if (!paymentData.flat_unique_id || !paymentData.amount_paid) {
@@ -118,8 +115,6 @@ export default function Financials() {
       toast.error('Failed to record payment');
     } finally {
       setIsRecordingPayment(false);
-
-      // ⏳ ADDITIVE cooldown
       setTimeout(() => {
         paymentCooldownRef.current = false;
       }, 3000);
@@ -142,10 +137,9 @@ export default function Financials() {
     }
   };
 
-  // ---------------- EXPENSES (CREATE + EDIT) ----------------
+  // ---------------- EXPENSES ----------------
 
   const handleSubmitExpense = async () => {
-    // 🔒 ADDITIVE guard
     if (isSavingExpense || expenseCooldownRef.current) return;
 
     if (!expenseData.expense_type || !expenseData.amount) {
@@ -166,7 +160,6 @@ export default function Financials() {
           vendor_name: expenseData.vendor_name,
           vendor_contact: expenseData.vendor_contact,
         });
-
         toast.success('Expense updated successfully');
       } else {
         await financialsAPI.createManualExpense({
@@ -176,7 +169,6 @@ export default function Financials() {
           description: expenseData.description,
           owner_unique_id: user.unique_id,
         });
-
         toast.success('Expense recorded successfully');
       }
 
@@ -198,15 +190,13 @@ export default function Financials() {
       toast.error('Failed to save expense');
     } finally {
       setIsSavingExpense(false);
-
-      // ⏳ ADDITIVE cooldown
       setTimeout(() => {
         expenseCooldownRef.current = false;
       }, 3000);
     }
   };
 
-  // ---------------- UI HELPERS ----------------
+  // ---------------- HELPERS ----------------
 
   const formatMoney = (value) => {
     const num = parseFloat(value);
@@ -229,20 +219,20 @@ export default function Financials() {
   // ---------------- UI ----------------
 
   return (
-    <div>
+    <div className="overflow-x-hidden">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
           Financial Management
         </h1>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowPaymentModal(true)}
             disabled={isRecordingPayment}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
           >
-            <Plus size={20} />
+            <Plus size={18} />
             Record Payment
           </button>
 
@@ -252,9 +242,9 @@ export default function Financials() {
               setShowExpenseModal(true);
             }}
             disabled={isSavingExpense}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
           >
-            <Plus size={20} />
+            <Plus size={18} />
             Add Expense
           </button>
         </div>
@@ -262,24 +252,24 @@ export default function Financials() {
 
       {/* SUMMARY */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <p className="text-gray-500 text-sm">Total Income</p>
-            <p className="text-3xl font-bold text-green-600 mt-2">
+            <p className="text-2xl md:text-3xl font-bold text-green-600 mt-1">
               ${formatMoney(summary.summary?.total_income)}
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <p className="text-gray-500 text-sm">Total Expenses</p>
-            <p className="text-3xl font-bold text-red-600 mt-2">
+            <p className="text-2xl md:text-3xl font-bold text-red-600 mt-1">
               ${formatMoney(summary.summary?.total_expenses)}
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white rounded-lg shadow p-4 md:p-6">
             <p className="text-gray-500 text-sm">Net Profit</p>
-            <p className="text-3xl font-bold text-blue-600 mt-2">
+            <p className="text-2xl md:text-3xl font-bold text-blue-600 mt-1">
               ${formatMoney(summary.summary?.net_profit)}
             </p>
           </div>
@@ -290,20 +280,20 @@ export default function Financials() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* PAYMENTS */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold">Recent Payments</h2>
+          <div className="p-4 md:p-6 border-b">
+            <h2 className="text-lg md:text-xl font-semibold">Recent Payments</h2>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {payments.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
+              <p className="text-gray-500 text-center py-6">
                 No payments recorded yet
               </p>
             ) : (
               payments.slice(0, 5).map((p) => (
                 <div
                   key={p.payment_unique_id}
-                  className="border-b pb-4 mb-4 flex justify-between"
+                  className="border-b pb-4 mb-4 flex flex-col sm:flex-row sm:justify-between gap-2"
                 >
                   <div>
                     <p className="font-medium">{p.flat?.title}</p>
@@ -313,7 +303,7 @@ export default function Financials() {
                     {renderStatus(p.payment_status)}
                   </div>
 
-                  <div className="text-right">
+                  <div className="sm:text-right">
                     <p className="text-green-600 font-semibold text-lg">
                       ${formatMoney(p.amount)}
                     </p>
@@ -339,20 +329,20 @@ export default function Financials() {
 
         {/* EXPENSES */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-semibold">Recent Expenses</h2>
+          <div className="p-4 md:p-6 border-b">
+            <h2 className="text-lg md:text-xl font-semibold">Recent Expenses</h2>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {expenses.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
+              <p className="text-gray-500 text-center py-6">
                 No expenses recorded yet
               </p>
             ) : (
               expenses.slice(0, 5).map((e) => (
                 <div
                   key={e.expense_unique_id}
-                  className="border-b pb-3 mb-3 flex justify-between"
+                  className="border-b pb-3 mb-3 flex flex-col sm:flex-row sm:justify-between gap-2"
                 >
                   <div>
                     <p className="font-medium">{e.expense_type}</p>

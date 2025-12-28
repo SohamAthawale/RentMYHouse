@@ -135,8 +135,6 @@ def list_flats():
     except Exception as e:
         return {"status": "fail", "message": f"Failed to list flats: {str(e)}"}, 500
 
-
-
 def rent_flat(flat_unique_id: str, tenant_unique_id: str, otp_code: str, deposit_amount: float = 0.0, rented_date: datetime = None):
     """
     Modified rent_flat to NOT create automatic payment.

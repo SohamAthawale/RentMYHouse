@@ -43,7 +43,7 @@ export default function Flats() {
     fetchFlats();
   }, []);
 
-const fetchFlats = async () => {
+   const fetchFlats = async () => {
   try {
     let res;
 
@@ -63,7 +63,6 @@ const fetchFlats = async () => {
     setLoading(false);
   }
 };
-
   // ============================
   // DELETE FLAT
   // ============================

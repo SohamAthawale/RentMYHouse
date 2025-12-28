@@ -14,7 +14,7 @@ from sklearn.metrics import mean_absolute_error
 # 1️⃣ LOAD DATA
 # =================================================
 
-df = pd.read_csv("/Users/sohamathawale/Downloads/Mumbai_House_Rent.csv")
+df = pd.read_csv("/home/opc/Downloads/Mumbai_House_Rent.csv")
 
 print("✅ Raw data loaded")
 print(df.head())
@@ -306,6 +306,6 @@ pred_rent = np.expm1(pred_log)
 print("Predicted rent:", int(pred_rent[0]))
 
 import joblib
-joblib.dump(model, "/Users/sohamathawale/Downloads/mumbai_rent_model.joblib")
+joblib.dump(model, "/home/opc/Desktop/RentMYHouse/analytics/models/mumbai_rent_model.joblib")
 
 

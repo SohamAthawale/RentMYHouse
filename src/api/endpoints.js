@@ -14,6 +14,7 @@ export const flatsAPI = {
 
   listFlats: () => api.get('/list-flats'),
 
+  // 🔒 NO PARAMS — JWT decides owner
   getOwnerFlats: () => api.get('/owner-flats'),
 
   requestRentOtp: (data) => api.post('/request-rent-otp', data),
@@ -27,7 +28,6 @@ export const flatsAPI = {
   deleteFlat: (flatUniqueId) =>
     api.delete(`/delete-flat/${flatUniqueId}`),
 };
-
 
 /* ---------------- TENANTS ---------------- */
 export const tenantsAPI = {

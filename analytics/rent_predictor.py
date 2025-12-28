@@ -1,13 +1,13 @@
 import joblib
 import numpy as np
 import pandas as pd
-
-
+from pathlib import Path
 # =================================================
 # LOAD MODEL
 # =================================================
-
-model = joblib.load("analytics/models/mumbai_rent_model.joblib")
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_PATH = BASE_DIR / "analytics" / "models" / "mumbai_rent_model.joblib"
+model = joblib.load(MODEL_PATH)
 MAE = 11335  # from training
 
 

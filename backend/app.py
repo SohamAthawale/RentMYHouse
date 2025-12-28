@@ -51,7 +51,8 @@ app.config.update(
 )
 
 # Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://sohamathawale:@localhost:5432/rentmyhouse'
+app.config['SQLALCHEMY_DATABASE_URI'] = \
+    'postgresql://postgres:222003@localhost:5432/rentmyhouse'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
@@ -211,27 +212,22 @@ def list_flats_route():
     result, status_code = list_flats()
     return jsonify(result), status_code
 
-from flask import session, jsonify
-
 @app.route('/owner-flats', methods=['GET'])
+@login_required
+@owner_required
 def owner_flats_route():
     """
-    Get flats ONLY for the logged-in owner (session-based auth)
+    Get flats ONLY for the logged-in owner
     """
     try:
-        # 🔐 1. Read owner identity from session
-        owner_unique_id = session.get('user_unique_id')
-        account_type = session.get('account_type')
-
-        if not owner_unique_id:
-            return {"status": "fail", "message": "Not authenticated"}, 401
-
-        if account_type != 'Owner':
-            return {"status": "fail", "message": "Access denied"}, 403
+        owner_unique_id = session.get("user_unique_id")
 
         owner = User.query.filter_by(unique_id=owner_unique_id).first()
         if not owner:
-            return {"status": "fail", "message": "Owner not found"}, 404
+            return {
+                "status": "fail",
+                "message": "Owner not found"
+            }, 404
 
         flats = owner.flats_owned.all()
 
@@ -246,29 +242,29 @@ def owner_flats_route():
                 total_rent += float(flat.rent)
 
             flats_data.append({
-                "flat_unique_id": flat.flat_unique_id,
-                "title": flat.title,
-                "address": flat.address,
-                "rent": str(flat.rent),
+            "flat_unique_id": flat.flat_unique_id,
+            "title": flat.title,
+            "address": flat.address,
+            "rent": str(flat.rent),
 
-                # ML-READY FEATURES
-                "bedrooms": flat.bedrooms,
-                "bathrooms": flat.bathrooms,
-                "area_sqft": flat.area_sqft,
-                "furnishing": flat.furnishing,
-                "property_type": flat.property_type,
+            # ML-READY FEATURES
+            "bedrooms": flat.bedrooms,
+            "bathrooms": flat.bathrooms,
+            "area_sqft": flat.area_sqft,
+            "furnishing": flat.furnishing,
+            "property_type": flat.property_type,
 
-                "created_at": flat.created_at.isoformat(),
+            "created_at": flat.created_at.isoformat(),
 
-                "is_rented": is_rented,
-                "rented_to_unique_id": flat.rented_to_unique_id,  # ✅ ADD THIS
+            "is_rented": is_rented,
+            "rented_to_unique_id": flat.rented_to_unique_id,  # ✅ ADD THIS
 
-                "tenant": {
-                    "unique_id": flat.tenant.unique_id,
-                    "username": flat.tenant.username,
-                    "contact_no": flat.tenant.contact_no
-                } if flat.tenant else None
-            })
+            "tenant": {
+                "unique_id": flat.tenant.unique_id,
+                "username": flat.tenant.username,
+                "contact_no": flat.tenant.contact_no
+            } if flat.tenant else None
+        })
 
 
         return {
@@ -279,13 +275,17 @@ def owner_flats_route():
                 "occupied_properties": occupied_count,
                 "vacant_properties": len(flats) - occupied_count,
                 "monthly_income": total_rent,
-                "occupancy_rate": round((occupied_count / len(flats) * 100), 2) if flats else 0
+                "occupancy_rate": round(
+                    (occupied_count / len(flats) * 100), 2
+                ) if flats else 0
             }
         }, 200
 
     except Exception as e:
-        return {"status": "fail", "message": str(e)}, 500
-
+        return {
+            "status": "fail",
+            "message": f"Failed to fetch owner flats: {str(e)}"
+        }, 500
 
 # Modify existing /rent-flat route:
 
