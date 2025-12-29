@@ -26,132 +26,89 @@ import Statistics from './pages/admin/Statistics';
 import VerifyOTP from './auth/VerifyOTP';
 import Profile from './pages/profile/Profile';
 import ChangePassword from './pages/profile/ChangePassword';
-
-const router = createBrowserRouter([
+const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <Navigate to="/login" replace />,
+    },
+    {
+      path: '/login',
+      element: <Login />,
+    },
+    {
+      path: '/signup',
+      element: <Signup />,
+    },
+    {
+      path: '/verify-otp',
+      element: <VerifyOTP />,
+    },
+    {
+      path: '/profile',
+      element: (
+        <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+          <Profile />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/change-password',
+      element: (
+        <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
+          <ChangePassword />
+        </ProtectedRoute>
+      ),
+    },
+    {
+      path: '/owner',
+      element: (
+        <ProtectedRoute allowedRoles={['Owner']}>
+          <OwnerLayout />
+        </ProtectedRoute>
+      ),
+      children: [
+        { path: 'dashboard', element: <OwnerDashboard /> },
+        { path: 'flats', element: <Flats /> },
+        { path: 'create-flat', element: <CreateFlat /> },
+        { path: 'tenants', element: <Tenants /> },
+        { path: 'service-requests', element: <OwnerServiceRequests /> },
+        { path: 'financials', element: <Financials /> },
+      ],
+    },
+    {
+      path: '/tenant',
+      element: (
+        <ProtectedRoute allowedRoles={['Tenant']}>
+          <TenantLayout />
+        </ProtectedRoute>
+      ),
+      children: [
+        { path: 'dashboard', element: <TenantDashboard /> },
+        { path: 'my-flat', element: <MyFlat /> },
+        { path: 'my-requests', element: <MyRequests /> },
+        { path: 'create-request', element: <CreateRequest /> },
+        { path: 'payments', element: <Payments /> },
+      ],
+    },
+    {
+      path: '/admin',
+      element: (
+        <ProtectedRoute allowedRoles={['Admin']}>
+          <AdminLayout />
+        </ProtectedRoute>
+      ),
+      children: [
+        { path: 'dashboard', element: <AdminDashboard /> },
+        { path: 'users', element: <Users /> },
+        { path: 'user-details/:uniqueId', element: <UserDetails /> },
+        { path: 'statistics', element: <Statistics /> },
+      ],
+    },
+  ],
   {
-    path: '/',
-    element: <Navigate to="/login" replace />,
-  },
-  {
-    path: '/login',
-    element: <Login />,
-  },
-  {
-    path: '/signup',
-    element: <Signup />,
-  },
-  {
-  path: '/verify-otp',
-  element: <VerifyOTP />,
-  },
-  {
-    path: '/profile',
-    element: (
-      <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
-        <Profile />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/change-password',
-    element: (
-      <ProtectedRoute allowedRoles={['Owner', 'Tenant', 'Admin']}>
-        <ChangePassword />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: '/owner',
-    element: (
-      <ProtectedRoute allowedRoles={['Owner']}>
-        <OwnerLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      {
-        path: 'dashboard',
-        element: <OwnerDashboard />,
-      },
-      {
-        path: 'flats',
-        element: <Flats />,
-      },
-      {
-        path: 'create-flat',
-        element: <CreateFlat />,
-      },
-      {
-        path: 'tenants',
-        element: <Tenants />,
-      },
-      {
-        path: 'service-requests',
-        element: <OwnerServiceRequests />,
-      },
-      {
-        path: 'financials',
-        element: <Financials />,
-      },
-    ],
-  },
-  {
-    path: '/tenant',
-    element: (
-      <ProtectedRoute allowedRoles={['Tenant']}>
-        <TenantLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      {
-        path: 'dashboard',
-        element: <TenantDashboard />,
-      },
-      {
-        path: 'my-flat',
-        element: <MyFlat />,
-      },
-      {
-        path: 'my-requests',
-        element: <MyRequests />,
-      },
-      {
-        path: 'create-request',
-        element: <CreateRequest />,
-      },
-      {
-        path: 'payments',
-        element: <Payments />,
-      },
-    ],
-  },
-  {
-    path: '/admin',
-    element: (
-      <ProtectedRoute allowedRoles={['Admin']}>
-        <AdminLayout />
-      </ProtectedRoute>
-    ),
-    children: [
-      {
-        path: 'dashboard',
-        element: <AdminDashboard />,
-      },
-      {
-        path: 'users',
-        element: <Users />,
-      },
-      {
-        path: 'user-details/:uniqueId',
-        element: <UserDetails />,
-      },
-      {
-        path: 'statistics',
-        element: <Statistics />,
-      },
-    ],
-
-  },
-
-]);
+    basename: '/rentmyhouse', // 🔥 THIS WAS MISSING
+  }
+);
 
 export default router;
