@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { financialsAPI, flatsAPI } from '../../api/endpoints';
 import toast from 'react-hot-toast';
-import { Plus, CheckCircle, Clock } from 'lucide-react';
+import { Plus, CheckCircle, Clock, DollarSign } from 'lucide-react';
 import Loader from '../../components/Loader';
 import PaymentModal from '../../components/PaymentModal';
 import ExpenseModal from '../../components/ExpenseModal';
@@ -205,11 +205,11 @@ export default function Financials() {
 
   const renderStatus = (status) =>
     status === 'Paid' ? (
-      <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+      <span className="badge-success gap-2">
         <CheckCircle size={14} /> Paid
       </span>
     ) : (
-      <span className="flex items-center gap-1 text-yellow-600 text-sm font-medium">
+      <span className="badge-warning gap-2">
         <Clock size={14} /> Pending
       </span>
     );
@@ -219,18 +219,21 @@ export default function Financials() {
   // ---------------- UI ----------------
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="page overflow-x-hidden">
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          Financial Management
-        </h1>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            Finance
+          </p>
+          <h1 className="page-title">Financial Management</h1>
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowPaymentModal(true)}
             disabled={isRecordingPayment}
-            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
             <Plus size={18} />
             Record Payment
@@ -242,7 +245,7 @@ export default function Financials() {
               setShowExpenseModal(true);
             }}
             disabled={isSavingExpense}
-            className="flex items-center justify-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+            className="btn-danger disabled:opacity-50"
           >
             <Plus size={18} />
             Add Expense
@@ -252,26 +255,41 @@ export default function Financials() {
 
       {/* SUMMARY */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow p-4 md:p-6">
-            <p className="text-gray-500 text-sm">Total Income</p>
-            <p className="text-2xl md:text-3xl font-bold text-green-600 mt-1">
-              ${formatMoney(summary.summary?.total_income)}
-            </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <div className="stat-card border-l-4 border-[var(--md-sys-color-primary)]">
+            <div>
+              <p className="text-sm text-slate-500">Total Income</p>
+              <p className="text-2xl md:text-3xl font-display font-semibold text-[var(--md-sys-color-primary)] mt-1">
+                ${formatMoney(summary.summary?.total_income)}
+              </p>
+            </div>
+            <div className="stat-icon icon-secondary">
+              <CheckCircle size={20} />
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-4 md:p-6">
-            <p className="text-gray-500 text-sm">Total Expenses</p>
-            <p className="text-2xl md:text-3xl font-bold text-red-600 mt-1">
-              ${formatMoney(summary.summary?.total_expenses)}
-            </p>
+          <div className="stat-card border-l-4 border-[var(--md-sys-color-error)]">
+            <div>
+              <p className="text-sm text-slate-500">Total Expenses</p>
+              <p className="text-2xl md:text-3xl font-display font-semibold text-[var(--md-sys-color-error)] mt-1">
+                ${formatMoney(summary.summary?.total_expenses)}
+              </p>
+            </div>
+            <div className="stat-icon icon-error">
+              <Clock size={20} />
+            </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-4 md:p-6">
-            <p className="text-gray-500 text-sm">Net Profit</p>
-            <p className="text-2xl md:text-3xl font-bold text-blue-600 mt-1">
-              ${formatMoney(summary.summary?.net_profit)}
-            </p>
+          <div className="stat-card border-l-4 border-[var(--md-sys-color-tertiary)]">
+            <div>
+              <p className="text-sm text-slate-500">Net Profit</p>
+              <p className="text-2xl md:text-3xl font-display font-semibold text-[var(--md-sys-color-tertiary)] mt-1">
+                ${formatMoney(summary.summary?.net_profit)}
+              </p>
+            </div>
+            <div className="stat-icon icon-tertiary">
+              <DollarSign size={20} />
+            </div>
           </div>
         </div>
       )}
@@ -279,32 +297,32 @@ export default function Financials() {
       {/* LISTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* PAYMENTS */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 md:p-6 border-b">
-            <h2 className="text-lg md:text-xl font-semibold">Recent Payments</h2>
+        <div className="card">
+          <div className="p-4 md:p-6 border-b border-slate-200/60">
+            <h2 className="section-title">Recent Payments</h2>
           </div>
 
           <div className="p-4 md:p-6">
             {payments.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">
+              <p className="text-slate-500 text-center py-6">
                 No payments recorded yet
               </p>
             ) : (
               payments.slice(0, 5).map((p) => (
                 <div
                   key={p.payment_unique_id}
-                  className="border-b pb-4 mb-4 flex flex-col sm:flex-row sm:justify-between gap-2"
+                  className="border-b border-slate-200/60 pb-4 mb-4 flex flex-col sm:flex-row sm:justify-between gap-2"
                 >
                   <div>
-                    <p className="font-medium">{p.flat?.title}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-semibold text-slate-900">{p.flat?.title}</p>
+                    <p className="text-sm text-slate-500">
                       {p.payment_date?.slice(0, 10)} · {p.payment_method}
                     </p>
                     {renderStatus(p.payment_status)}
                   </div>
 
                   <div className="sm:text-right">
-                    <p className="text-green-600 font-semibold text-lg">
+                    <p className="text-[var(--md-sys-color-primary)] font-semibold text-lg">
                       ${formatMoney(p.amount)}
                     </p>
                     {p.payment_status === 'Pending' && (
@@ -313,7 +331,7 @@ export default function Financials() {
                           handleVerifyPayment(p.payment_unique_id)
                         }
                         disabled={verifyingId === p.payment_unique_id}
-                        className="text-sm bg-blue-600 text-white px-3 py-1 rounded mt-2 disabled:opacity-50"
+                        className="btn-secondary mt-2 text-xs px-3 py-1.5 disabled:opacity-50"
                       >
                         {verifyingId === p.payment_unique_id
                           ? 'Verifying…'
@@ -328,25 +346,25 @@ export default function Financials() {
         </div>
 
         {/* EXPENSES */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-4 md:p-6 border-b">
-            <h2 className="text-lg md:text-xl font-semibold">Recent Expenses</h2>
+        <div className="card">
+          <div className="p-4 md:p-6 border-b border-slate-200/60">
+            <h2 className="section-title">Recent Expenses</h2>
           </div>
 
           <div className="p-4 md:p-6">
             {expenses.length === 0 ? (
-              <p className="text-gray-500 text-center py-6">
+              <p className="text-slate-500 text-center py-6">
                 No expenses recorded yet
               </p>
             ) : (
               expenses.slice(0, 5).map((e) => (
                 <div
                   key={e.expense_unique_id}
-                  className="border-b pb-3 mb-3 flex flex-col sm:flex-row sm:justify-between gap-2"
+                  className="border-b border-slate-200/60 pb-3 mb-3 flex flex-col sm:flex-row sm:justify-between gap-2"
                 >
                   <div>
-                    <p className="font-medium">{e.expense_type}</p>
-                    <p className="text-sm text-gray-500">{e.description}</p>
+                    <p className="font-semibold text-slate-900">{e.expense_type}</p>
+                    <p className="text-sm text-slate-500">{e.description}</p>
                     <button
                       onClick={() => {
                         setEditingExpense(e);
@@ -361,12 +379,12 @@ export default function Financials() {
                         });
                         setShowExpenseModal(true);
                       }}
-                      className="text-sm text-blue-600 hover:underline mt-1"
+                      className="text-sm text-[var(--md-sys-color-primary)] mt-1 font-semibold"
                     >
                       Edit
                     </button>
                   </div>
-                  <p className="text-red-600 font-semibold">
+                  <p className="text-[var(--md-sys-color-error)] font-semibold">
                     ${formatMoney(e.amount)}
                   </p>
                 </div>

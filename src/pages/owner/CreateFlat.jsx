@@ -66,25 +66,23 @@ export default function CreateFlat() {
   };
 
   return (
-    <div>
+    <div className="page">
       <button
         onClick={() => navigate('/owner/flats')}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+        className="btn-ghost w-fit"
       >
         <ArrowLeft size={20} />
         Back to Flats
       </button>
 
       <div className="max-w-2xl">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">
-          Create New Flat
-        </h1>
+        <h1 className="page-title mb-6">Create New Flat</h1>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Flat Title
               </label>
               <input
@@ -93,14 +91,14 @@ export default function CreateFlat() {
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
                 placeholder="Apartment 101"
               />
             </div>
 
             {/* Address */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Address
               </label>
               <input
@@ -109,14 +107,14 @@ export default function CreateFlat() {
                 onChange={(e) =>
                   setFormData({ ...formData, address: e.target.value })
                 }
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
                 placeholder="101 Vasudev Apartment, Malad West"
               />
             </div>
 
             {/* Rent */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Monthly Rent
               </label>
               <input
@@ -126,7 +124,7 @@ export default function CreateFlat() {
                 onChange={(e) =>
                   setFormData({ ...formData, rent: e.target.value })
                 }
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
                 placeholder="65000"
               />
             </div>
@@ -134,7 +132,7 @@ export default function CreateFlat() {
             {/* Bedrooms & Bathrooms */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Bedrooms
                 </label>
                 <input
@@ -143,12 +141,12 @@ export default function CreateFlat() {
                   onChange={(e) =>
                     setFormData({ ...formData, bedrooms: e.target.value })
                   }
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="input"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Bathrooms
                 </label>
                 <input
@@ -157,14 +155,14 @@ export default function CreateFlat() {
                   onChange={(e) =>
                     setFormData({ ...formData, bathrooms: e.target.value })
                   }
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="input"
                 />
               </div>
             </div>
 
             {/* Area */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Area (sqft)
               </label>
               <input
@@ -173,14 +171,14 @@ export default function CreateFlat() {
                 onChange={(e) =>
                   setFormData({ ...formData, area_sqft: e.target.value })
                 }
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
               />
             </div>
 
             {/* Furnishing & Property Type */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Furnishing
                 </label>
                 <select
@@ -188,7 +186,7 @@ export default function CreateFlat() {
                   onChange={(e) =>
                     setFormData({ ...formData, furnishing: e.target.value })
                   }
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="select"
                 >
                   <option value="">Select</option>
                   <option value="Unfurnished">Unfurnished</option>
@@ -198,7 +196,7 @@ export default function CreateFlat() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Property Type
                 </label>
                 <select
@@ -206,7 +204,7 @@ export default function CreateFlat() {
                   onChange={(e) =>
                     setFormData({ ...formData, property_type: e.target.value })
                   }
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="select"
                 >
                   <option value="">Select</option>
                   <option value="Apartment">Apartment</option>
@@ -223,7 +221,7 @@ export default function CreateFlat() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+                className="btn-primary flex-1"
               >
                 {loading ? 'Creating...' : 'Create Flat'}
               </button>
@@ -231,7 +229,7 @@ export default function CreateFlat() {
               <button
                 type="button"
                 onClick={() => navigate('/owner/flats')}
-                className="flex-1 bg-gray-300 py-3 rounded-lg"
+                className="btn-outline flex-1"
               >
                 Cancel
               </button>

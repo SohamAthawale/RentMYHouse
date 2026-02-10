@@ -6,14 +6,16 @@ export default function ExpenseModal({
   onSubmit,
 }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+    <div className="modal-backdrop">
+      <div className="modal-card">
 
-        <h2 className="text-xl font-bold mb-4">Add Expense</h2>
+        <h2 className="text-xl font-display font-semibold text-slate-900 mb-4">
+          Add Expense
+        </h2>
 
         {/* FLAT */}
         <select
-          className="w-full border px-4 py-2 rounded mb-3"
+          className="select mb-3"
           value={expenseData.flat_unique_id}
           onChange={(e) =>
             setExpenseData({ ...expenseData, flat_unique_id: e.target.value })
@@ -29,7 +31,7 @@ export default function ExpenseModal({
 
         {/* TYPE */}
         <select
-          className="w-full border px-4 py-2 rounded mb-3"
+          className="select mb-3"
           value={expenseData.expense_type}
           onChange={(e) =>
             setExpenseData({ ...expenseData, expense_type: e.target.value })
@@ -48,7 +50,7 @@ export default function ExpenseModal({
         <input
           type="number"
           placeholder="Amount"
-          className="w-full border px-4 py-2 rounded mb-3"
+          className="input mb-3"
           value={expenseData.amount}
           onChange={(e) =>
             setExpenseData({ ...expenseData, amount: e.target.value })
@@ -58,7 +60,7 @@ export default function ExpenseModal({
         {/* DESCRIPTION */}
         <textarea
           placeholder="Description"
-          className="w-full border px-4 py-2 rounded mb-4"
+          className="textarea mb-4"
           rows="3"
           value={expenseData.description}
           onChange={(e) =>
@@ -70,14 +72,14 @@ export default function ExpenseModal({
         <div className="flex gap-3">
           <button
             onClick={onSubmit}
-            className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700"
+            className="btn-danger flex-1"
           >
             Save
           </button>
 
           <button
             onClick={onClose}
-            className="flex-1 bg-gray-300 py-2 rounded hover:bg-gray-400"
+            className="btn-outline flex-1"
           >
             Cancel
           </button>

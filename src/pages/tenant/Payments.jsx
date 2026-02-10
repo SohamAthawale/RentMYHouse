@@ -90,11 +90,11 @@ export default function Payments() {
 
   const renderStatus = (status) =>
     status === 'Paid' ? (
-      <span className="flex items-center gap-2 text-green-600">
+      <span className="badge-success gap-2">
         <CheckCircle size={16} /> Paid
       </span>
     ) : (
-      <span className="flex items-center gap-2 text-yellow-600">
+      <span className="badge-warning gap-2">
         <Clock size={16} /> Pending Verification
       </span>
     );
@@ -102,16 +102,19 @@ export default function Payments() {
   // ---------------- UI ----------------
 
   return (
-    <div>
+    <div className="page">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
-          My Rent Payments
-        </h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            Payments
+          </p>
+          <h1 className="page-title">My Rent Payments</h1>
+        </div>
 
         <button
           onClick={() => setShowPayModal(true)}
-          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          className="btn-primary"
         >
           <Plus size={18} />
           Pay Rent
@@ -120,34 +123,34 @@ export default function Payments() {
 
       {/* EMPTY STATE */}
       {payments.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <DollarSign size={48} className="mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500">No payments yet</p>
+        <div className="card p-12 text-center">
+          <DollarSign size={48} className="mx-auto text-slate-300 mb-4" />
+          <p className="text-slate-500">No payments yet</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-card">
+          <table className="min-w-full">
+            <thead className="table-head">
               <tr>
-                <th className="px-6 py-3 text-left text-xs">Flat</th>
-                <th className="px-6 py-3 text-left text-xs">Period</th>
-                <th className="px-6 py-3 text-left text-xs">Amount</th>
-                <th className="px-6 py-3 text-left text-xs">Payment Date</th>
-                <th className="px-6 py-3 text-left text-xs">Status</th>
+                <th className="px-6 py-4 text-left">Flat</th>
+                <th className="px-6 py-4 text-left">Period</th>
+                <th className="px-6 py-4 text-left">Amount</th>
+                <th className="px-6 py-4 text-left">Payment Date</th>
+                <th className="px-6 py-4 text-left">Status</th>
               </tr>
             </thead>
 
-            <tbody className="divide-y">
+            <tbody className="text-sm text-slate-700">
               {payments.map((p) => (
-                <tr key={p.payment_unique_id}>
-                  <td className="px-6 py-4 text-sm">{p.flat_name}</td>
-                  <td className="px-6 py-4 text-sm">
+                <tr key={p.payment_unique_id} className="table-row">
+                  <td className="px-6 py-4">{p.flat_name}</td>
+                  <td className="px-6 py-4">
                     {p.payment_month}/{p.payment_year}
                   </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-green-600">
+                  <td className="px-6 py-4 font-semibold text-[var(--md-sys-color-primary)]">
                     ₹{Number(p.amount_paid).toFixed(2)}
                   </td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4">
                     {p.payment_date?.toLocaleDateString() || '-'}
                   </td>
                   <td className="px-6 py-4">{renderStatus(p.status)}</td>
@@ -160,18 +163,18 @@ export default function Payments() {
 
       {/* PAY RENT MODAL */}
       {showPayModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Pay Rent</h2>
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h2 className="text-xl font-display font-semibold text-slate-900 mb-4">Pay Rent</h2>
 
             {/* RENT (AUTO-FILLED) */}
-            <div className="flex items-center border rounded px-3 mb-3 bg-gray-100">
-              <DollarSign size={18} className="text-gray-400" />
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2.5 mb-3">
+              <DollarSign size={18} className="text-slate-400" />
               <input
                 type="number"
                 value={payData.amount}
                 readOnly
-                className="w-full px-3 py-2 outline-none bg-gray-100 cursor-not-allowed"
+                className="w-full bg-transparent text-sm text-slate-600 outline-none cursor-not-allowed"
               />
             </div>
 
@@ -181,7 +184,7 @@ export default function Payments() {
               onChange={(e) =>
                 setPayData({ ...payData, payment_method: e.target.value })
               }
-              className="w-full border rounded px-3 py-2 mb-4"
+              className="select mb-4"
             >
               <option>Bank Transfer</option>
               <option>Check</option>
@@ -191,16 +194,16 @@ export default function Payments() {
               <option>Others</option>
             </select>
 
-            <div className="flex justify-end gap-3">
+            <div className="modal-actions">
               <button
                 onClick={() => setShowPayModal(false)}
-                className="px-4 py-2 border rounded"
+                className="btn-outline"
               >
                 Cancel
               </button>
               <button
                 onClick={handlePayRent}
-                className="px-4 py-2 bg-green-600 text-white rounded"
+                className="btn-primary"
               >
                 Submit Payment
               </button>

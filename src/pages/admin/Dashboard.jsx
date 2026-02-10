@@ -25,31 +25,34 @@ export default function AdminDashboard() {
   if (loading) return <Loader />;
 
   const cards = [
-    { label: 'Total Users', value: stats?.total_users || 0, icon: Users, color: 'bg-blue-500' },
-    { label: 'Total Owners', value: stats?.total_owners || 0, icon: Users, color: 'bg-green-500' },
-    { label: 'Total Tenants', value: stats?.total_tenants || 0, icon: Users, color: 'bg-yellow-500' },
-    { label: 'Total Flats', value: stats?.total_flats || 0, icon: Home, color: 'bg-purple-500' },
-    { label: 'Rented Flats', value: stats?.rented_flats || 0, icon: Home, color: 'bg-teal-500' },
-    { label: 'Available Flats', value: stats?.available_flats || 0, icon: Home, color: 'bg-orange-500' },
-    { label: 'Service Requests', value: stats?.total_service_requests || 0, icon: Wrench, color: 'bg-red-500' },
-    { label: 'Total Payments', value: stats?.total_payments || 0, icon: DollarSign, color: 'bg-pink-500' },
+    { label: 'Total Users', value: stats?.total_users || 0, icon: Users, tone: 'icon-primary', accent: 'border-[var(--md-sys-color-primary)]' },
+    { label: 'Total Owners', value: stats?.total_owners || 0, icon: Users, tone: 'icon-secondary', accent: 'border-[var(--md-sys-color-secondary)]' },
+    { label: 'Total Tenants', value: stats?.total_tenants || 0, icon: Users, tone: 'icon-tertiary', accent: 'border-[var(--md-sys-color-tertiary)]' },
+    { label: 'Total Flats', value: stats?.total_flats || 0, icon: Home, tone: 'icon-primary', accent: 'border-[var(--md-sys-color-primary)]' },
+    { label: 'Rented Flats', value: stats?.rented_flats || 0, icon: Home, tone: 'icon-secondary', accent: 'border-[var(--md-sys-color-secondary)]' },
+    { label: 'Available Flats', value: stats?.available_flats || 0, icon: Home, tone: 'icon-tertiary', accent: 'border-[var(--md-sys-color-tertiary)]' },
+    { label: 'Service Requests', value: stats?.total_service_requests || 0, icon: Wrench, tone: 'icon-error', accent: 'border-[var(--md-sys-color-error)]' },
+    { label: 'Total Payments', value: stats?.total_payments || 0, icon: DollarSign, tone: 'icon-primary', accent: 'border-[var(--md-sys-color-primary)]' },
   ];
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
+    <div className="page">
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+          Admin
+        </p>
+        <h1 className="page-title">Admin Dashboard</h1>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {cards.map((card, index) => (
-          <div key={index} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">{card.label}</p>
-                <p className="text-3xl font-bold text-gray-800 mt-2">{card.value}</p>
-              </div>
-              <div className={`${card.color} p-3 rounded-lg`}>
-                <card.icon className="text-white" size={24} />
-              </div>
+          <div key={index} className={`stat-card border-l-4 ${card.accent}`}>
+            <div>
+              <p className="text-sm text-slate-500">{card.label}</p>
+              <p className="text-3xl font-display font-semibold text-slate-900 mt-2">{card.value}</p>
+            </div>
+            <div className={`stat-icon ${card.tone}`}>
+              <card.icon size={22} />
             </div>
           </div>
         ))}

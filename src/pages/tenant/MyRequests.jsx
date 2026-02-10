@@ -68,29 +68,34 @@ export default function MyRequests() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Open':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'badge-warning';
       case 'In Progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'badge-info';
       case 'Completed':
-        return 'bg-green-100 text-green-800';
+        return 'badge-success';
       case 'Cancelled':
-        return 'bg-red-100 text-red-800';
+        return 'badge-danger';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'badge-neutral';
     }
   };
 
   if (loading) return <Loader />;
 
   return (
-    <div>
+    <div className="page">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">My Service Requests</h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            Maintenance
+          </p>
+          <h1 className="page-title">My Service Requests</h1>
+        </div>
 
         <button
           onClick={() => navigate('/tenant/create-request')}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          className="btn-primary"
         >
           <Plus size={20} />
           New Request
@@ -99,13 +104,13 @@ export default function MyRequests() {
 
       {/* NO Requests */}
       {requests.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Wrench size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Service Requests</h3>
-          <p className="text-gray-500 mb-6">Create your first service request</p>
+        <div className="card p-12 text-center">
+          <Wrench size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">No Service Requests</h3>
+          <p className="text-slate-500 mb-6">Create your first service request</p>
           <button
             onClick={() => navigate('/tenant/create-request')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+            className="btn-primary"
           >
             Create Request
           </button>
@@ -113,18 +118,18 @@ export default function MyRequests() {
       ) : (
         <div className="space-y-4">
           {requests.map((req) => (
-            <div key={req.request_unique_id} className="bg-white rounded-lg shadow p-6">
+            <div key={req.request_unique_id} className="card-hover p-6">
 
               {/* Title + Status */}
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{req.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <h3 className="text-lg font-semibold text-slate-900">{req.title}</h3>
+                  <p className="text-sm text-slate-500 mt-1">
                     Flat: {req.flat?.title}
                   </p>
                 </div>
 
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(req.status)}`}>
+                <span className={`badge ${getStatusColor(req.status)}`}>
                   {req.status}
                 </span>
               </div>
@@ -132,14 +137,14 @@ export default function MyRequests() {
               {/* Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-500">Priority</p>
+                  <p className="text-sm text-slate-500">Priority</p>
                   <span
-                    className={`inline-block px-2 py-1 mt-1 text-xs font-medium rounded-full ${
+                    className={`badge mt-1 ${
                       req.priority === "High"
-                        ? "bg-red-100 text-red-800"
+                        ? "badge-danger"
                         : req.priority === "Medium"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
+                        ? "badge-warning"
+                        : "badge-success"
                     }`}
                   >
                     {req.priority}
@@ -147,15 +152,15 @@ export default function MyRequests() {
                 </div>
 
                 <div>
-                  <p className="text-sm text-gray-500">Requested At</p>
-                  <p className="text-gray-800 mt-1">
+                  <p className="text-sm text-slate-500">Requested At</p>
+                  <p className="text-slate-800 mt-1">
                     {new Date(req.requested_at).toLocaleDateString()}
                   </p>
                 </div>
 
                 {req.tenant_rating && (
                   <div>
-                    <p className="text-sm text-gray-500">Your Rating</p>
+                    <p className="text-sm text-slate-500">Your Rating</p>
                     <div className="flex items-center gap-1 mt-1">
                       {[...Array(5)].map((_, i) => (
                         <Star
@@ -175,9 +180,9 @@ export default function MyRequests() {
 
               {/* Owner Notes */}
               {req.owner_notes && (
-                <div className="bg-gray-50 rounded p-3 mb-4">
-                  <p className="text-sm text-gray-500">Owner Notes</p>
-                  <p className="text-gray-800 mt-1">{req.owner_notes}</p>
+                <div className="bg-slate-50 rounded-xl p-3 mb-4">
+                  <p className="text-sm text-slate-500">Owner Notes</p>
+                  <p className="text-slate-800 mt-1">{req.owner_notes}</p>
                 </div>
               )}
 
@@ -185,7 +190,7 @@ export default function MyRequests() {
               {req.status === "Completed" && !req.tenant_rating && (
                 <button
                   onClick={() => openRatingModal(req)}
-                  className="flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
+                  className="btn-outline text-[var(--md-sys-color-tertiary)]"
                 >
                   <Star size={16} />
                   Rate Service
@@ -198,13 +203,13 @@ export default function MyRequests() {
 
       {/* Rating Modal */}
       {showRatingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Rate Service</h2>
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-4">Rate Service</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Rating</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -214,7 +219,7 @@ export default function MyRequests() {
                     >
                       <Star
                         size={32}
-                        className={star <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}
+                        className={star <= rating ? 'text-[var(--md-sys-color-tertiary)] fill-current' : 'text-slate-300'}
                       />
                     </button>
                   ))}
@@ -222,11 +227,11 @@ export default function MyRequests() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Comments</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Comments</label>
                 <textarea
                   value={ratingRemarks}
                   onChange={(e) => setRatingRemarks(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="textarea"
                   rows="3"
                   placeholder="Share your feedback..."
                 />
@@ -236,14 +241,14 @@ export default function MyRequests() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleRateRequest}
-                className="flex-1 bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition"
+                className="btn-primary flex-1"
               >
                 Submit Rating
               </button>
 
               <button
                 onClick={() => setShowRatingModal(false)}
-                className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
+                className="btn-outline flex-1"
               >
                 Cancel
               </button>

@@ -96,12 +96,12 @@ export default function MyFlat() {
     const predicted = prediction.predicted_rent;
 
     if (actual <= predicted * 0.9) {
-      return { label: "Good Deal", color: "bg-green-100 text-green-800" };
+      return { label: "Good Deal", color: "badge-success" };
     }
     if (actual >= predicted * 1.1) {
-      return { label: "Overpriced", color: "bg-red-100 text-red-800" };
+      return { label: "Overpriced", color: "badge-danger" };
     }
-    return { label: "Fair Price", color: "bg-yellow-100 text-yellow-800" };
+    return { label: "Fair Price", color: "badge-warning" };
   };
 
   // --------------------------------------------------
@@ -111,14 +111,14 @@ export default function MyFlat() {
 
   if (!flat) {
     return (
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">My Flat</h1>
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Home size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+      <div className="page">
+        <h1 className="page-title">My Flat</h1>
+        <div className="card p-12 text-center">
+          <Home size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">
             No Flat Assigned
           </h3>
-          <p className="text-gray-500">
+          <p className="text-slate-500">
             You are not currently assigned to any flat
           </p>
         </div>
@@ -130,17 +130,17 @@ export default function MyFlat() {
   // MAIN UI
   // --------------------------------------------------
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">My Flat</h1>
+    <div className="page">
+      <h1 className="page-title">My Flat</h1>
 
-      <div className="bg-white rounded-lg shadow p-8">
+      <div className="card p-8">
         <div className="flex items-start gap-6">
-          <div className="bg-blue-100 p-4 rounded-lg">
-            <Home size={48} className="text-blue-600" />
+          <div className="p-4 rounded-2xl shadow-soft bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+            <Home size={40} />
           </div>
 
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-2">
               {flat.flat_name}
             </h2>
 
@@ -148,14 +148,14 @@ export default function MyFlat() {
 
               {/* Location */}
               <InfoItem
-                icon={<MapPin size={20} className="text-gray-400" />}
+                icon={<MapPin size={20} className="text-slate-400" />}
                 label="Location"
                 value={flat.location}
               />
 
               {/* Rent */}
               <InfoItem
-                icon={<DollarSign size={20} className="text-gray-400" />}
+                icon={<DollarSign size={20} className="text-slate-400" />}
                 label="Monthly Rent"
                 value={
                   flat.rent_amount
@@ -166,7 +166,7 @@ export default function MyFlat() {
 
               {/* Property details */}
               <InfoItem
-                icon={<Home size={20} className="text-gray-400" />}
+                icon={<Home size={20} className="text-slate-400" />}
                 label="Property Details"
                 value={`${flat.bedrooms ?? "–"} Bed · ${
                   flat.bathrooms ?? "–"
@@ -175,24 +175,24 @@ export default function MyFlat() {
 
               {/* Type */}
               <InfoItem
-                icon={<Home size={20} className="text-gray-400" />}
+                icon={<Home size={20} className="text-slate-400" />}
                 label="Type"
                 value={`${flat.property_type} (${flat.furnishing})`}
               />
 
               {/* Owner */}
               <InfoItem
-                icon={<User size={20} className="text-gray-400" />}
+                icon={<User size={20} className="text-slate-400" />}
                 label="Owner"
                 value={flat.owner_name}
               />
 
               {/* Status */}
               <div className="flex items-center gap-3">
-                <Home size={20} className="text-gray-400" />
+                <Home size={20} className="text-slate-400" />
                 <div>
-                  <p className="text-sm text-gray-500">Status</p>
-                  <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  <p className="text-sm text-slate-500">Status</p>
+                  <span className="badge-success">
                     Rented
                   </span>
                 </div>
@@ -201,17 +201,15 @@ export default function MyFlat() {
               {/* AI Prediction */}
               {prediction && (
                 <div className="flex items-center gap-3">
-                  <DollarSign size={20} className="text-gray-400" />
+                  <DollarSign size={20} className="text-slate-400" />
                   <div>
-                    <p className="text-sm text-gray-500">AI Price Check</p>
-                    <p className="text-gray-800 font-medium">
+                    <p className="text-sm text-slate-500">AI Price Check</p>
+                    <p className="text-slate-800 font-medium">
                       Estimated: ₹
                       {prediction.predicted_rent.toLocaleString("en-IN")}
                     </p>
                     <span
-                      className={`inline-block mt-1 px-3 py-1 rounded-full text-sm font-medium ${
-                        getDealQuality()?.color
-                      }`}
+                      className={`${getDealQuality()?.color} mt-1`}
                     >
                       {getDealQuality()?.label}
                     </span>
@@ -235,8 +233,8 @@ function InfoItem({ icon, label, value }) {
     <div className="flex items-center gap-3">
       {icon}
       <div>
-        <p className="text-sm text-gray-500">{label}</p>
-        <p className="text-gray-800 font-medium">{value}</p>
+        <p className="text-sm text-slate-500">{label}</p>
+        <p className="text-slate-800 font-medium">{value}</p>
       </div>
     </div>
   );

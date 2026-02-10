@@ -35,47 +35,52 @@ export default function Tenants() {
   if (loading) return <Loader />;
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">My Tenants</h1>
+    <div className="page">
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+          Occupancy
+        </p>
+        <h1 className="page-title">My Tenants</h1>
+      </div>
 
       {tenants.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Users size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Tenants Yet</h3>
-          <p className="text-gray-500">Assign tenants to your flats to see them here</p>
+        <div className="card p-12 text-center">
+          <Users size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">No Tenants Yet</h3>
+          <p className="text-slate-500">Assign tenants to your flats to see them here</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tenants.map((flat) => (
-            <div key={flat.flat_unique_id} className="bg-white rounded-lg shadow p-6">
+            <div key={flat.flat_unique_id} className="card-hover p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <Users className="text-blue-600" size={24} />
+                <div className="p-3 rounded-2xl shadow-soft bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+                  <Users size={22} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">
+                  <h3 className="text-lg font-semibold text-slate-900">
                     {flat.tenant?.username}
                   </h3>
-                  <p className="text-sm text-gray-500">Tenant</p>
+                  <p className="text-sm text-slate-500">Tenant</p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-slate-600">
                   <Home size={16} />
                   <span className="text-sm">{flat.title}</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-slate-600">
                   <Phone size={16} />
                   <span className="text-sm">{flat.tenant?.contact_no || "N/A"}</span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
+              <div className="mt-4 pt-4 border-t border-slate-200/70">
+                <p className="text-sm text-slate-600">
                   Monthly Rent:{" "}
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-slate-800">
                     ${flat.rent}
                   </span>
                 </p>

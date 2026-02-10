@@ -88,13 +88,13 @@ export default function CreateRequest() {
 
   if (!flat) {
     return (
-      <div className="bg-white rounded-lg shadow p-12 text-center">
-        <p className="text-gray-600">
+      <div className="card p-12 text-center">
+        <p className="text-slate-600">
           You must be assigned to a flat to create service requests
         </p>
         <button
           onClick={() => navigate('/tenant/dashboard')}
-          className="mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg rounded-lg hover:bg-blue-700"
+          className="btn-primary mt-6"
         >
           Go to Dashboard
         </button>
@@ -103,44 +103,42 @@ export default function CreateRequest() {
   }
 
   return (
-    <div>
+    <div className="page">
       <button
         onClick={() => navigate('/tenant/my-requests')}
-        className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+        className="btn-ghost w-fit"
       >
         <ArrowLeft size={20} />
         Back to Requests
       </button>
 
       <div className="max-w-2xl">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">
-          Create Service Request
-        </h1>
+        <h1 className="page-title mb-6">Create Service Request</h1>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
 
             {/* Flat Info */}
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Requesting for</p>
-              <p className="text-lg font-semibold">{flat.title}</p>
-              <p className="text-sm text-gray-600">{flat.address}</p>
+            <div className="bg-slate-50 p-4 rounded-xl">
+              <p className="text-sm text-slate-600">Requesting for</p>
+              <p className="text-lg font-semibold text-slate-900">{flat.title}</p>
+              <p className="text-sm text-slate-600">{flat.address}</p>
             </div>
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium mb-2">Title</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Title</label>
               <input
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="input"
                 placeholder="e.g. Kitchen sink leakage"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Issue Description
               </label>
               <textarea
@@ -148,20 +146,20 @@ export default function CreateRequest() {
                 onChange={e =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                className="w-full px-4 py-2 border rounded-lg"
+                className="textarea"
                 rows="5"
               />
             </div>
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium mb-2">Category</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
               <select
                 value={formData.category}
                 onChange={e =>
                   setFormData({ ...formData, category: e.target.value })
                 }
-                className="w-full px-4 py-2 border rounded-lg"
+                className="select"
               >
                 {CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -171,13 +169,13 @@ export default function CreateRequest() {
 
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium mb-2">Priority</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Priority</label>
               <select
                 value={formData.priority}
                 onChange={e =>
                   setFormData({ ...formData, priority: e.target.value })
                 }
-                className="w-full px-4 py-2 border rounded-lg"
+                className="select"
               >
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -191,7 +189,7 @@ export default function CreateRequest() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-3 rounded-lg disabled:opacity-50"
+                className="btn-primary flex-1 disabled:opacity-50"
               >
                 {loading ? 'Creating...' : 'Create Request'}
               </button>
@@ -199,7 +197,7 @@ export default function CreateRequest() {
               <button
                 type="button"
                 onClick={() => navigate('/tenant/my-requests')}
-                className="flex-1 bg-gray-300 py-3 rounded-lg"
+                className="btn-outline flex-1"
               >
                 Cancel
               </button>

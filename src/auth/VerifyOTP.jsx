@@ -2,19 +2,26 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authAPI } from '../api/endpoints';
 import toast from 'react-hot-toast';
+import LogoMark from '../assets/brand/logo-mark.svg';
 
 export default function VerifyOTP() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const email = location.state?.email; // passed from signup/login
+  const email = location.state?.email;
   const purpose = 'email_signup';
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
   if (!email) {
-    return <p className="text-center mt-10">Invalid verification session</p>;
+    return (
+      <div className="auth-shell">
+        <div className="card p-6 text-center text-slate-600">
+          Invalid verification session
+        </div>
+      </div>
+    );
   }
 
   const handleVerify = async (e) => {
@@ -41,16 +48,21 @@ export default function VerifyOTP() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="auth-shell">
       <form
         onSubmit={handleVerify}
-        className="bg-white p-6 rounded-lg shadow w-full max-w-sm"
+        className="auth-card w-full max-w-md"
       >
-        <h2 className="text-xl font-semibold mb-4 text-center">
-          Verify Email
-        </h2>
+        <div className="flex flex-col items-center gap-3 mb-4">
+          <img src={LogoMark} alt="RentMYHouse" className="h-12 w-12" />
+          <h2 className="text-2xl font-display font-semibold text-slate-900 text-center">
+            Verify your email
+          </h2>
+        </div>
 
-        <p className="text-sm text-gray-600 mb-4 text-center">
+        <div className="h-1 w-16 rounded-full bg-[var(--md-sys-color-primary)] mx-auto mb-4"></div>
+
+        <p className="text-sm text-slate-600 mb-6 text-center">
           OTP sent to <b>{email}</b>
         </p>
 
@@ -59,13 +71,13 @@ export default function VerifyOTP() {
           value={otp}
           onChange={(e) => setOtp(e.target.value)}
           maxLength={6}
-          className="w-full border px-4 py-2 rounded mb-4 text-center tracking-widest"
+          className="input text-center tracking-[0.5em] font-semibold"
           placeholder="123456"
         />
 
         <button
           disabled={loading}
-          className="w-full bg-green-600 text-white py-2 rounded"
+          className="btn-primary w-full mt-5"
         >
           {loading ? 'Verifying...' : 'Verify OTP'}
         </button>

@@ -216,13 +216,18 @@ export default function Flats() {
   if (loading) return <Loader />;
 
   return (
-    <div>
+    <div className="page">
       {/* HEADER */}
-      <div className="flex justify-between mb-6">
-        <h1 className="text-3xl font-bold">Manage Flats</h1>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            Inventory
+          </p>
+          <h1 className="page-title">Manage Flats</h1>
+        </div>
         <button
           onClick={() => navigate('/owner/create-flat')}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          className="btn-primary"
         >
           <Plus size={18} /> Create Flat
         </button>
@@ -231,23 +236,25 @@ export default function Flats() {
       {/* FLATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {flats.map((flat) => (
-          <div key={flat.flat_unique_id} className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-xl font-semibold">{flat.title}</h3>
-            <p>{flat.address}</p>
-            <p className="mt-2">Rent: ₹{flat.rent}</p>
+          <div key={flat.flat_unique_id} className="card-hover p-6">
+            <h3 className="text-xl font-semibold text-slate-900">{flat.title}</h3>
+            <p className="text-slate-600">{flat.address}</p>
+            <p className="mt-2 text-slate-700">
+              Rent: <span className="font-semibold">₹{flat.rent}</span>
+            </p>
 
             {!flat.is_rented ? (
               <>
                 <button
                   onClick={() => openAssignModal(flat)}
-                  className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center gap-2"
+                  className="btn-primary w-full mt-4"
                 >
                   <UserPlus size={16} /> Assign
                 </button>
 
                 <button
                   onClick={() => handleDeleteFlat(flat.flat_unique_id)}
-                  className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center gap-2"
+                  className="btn-danger w-full mt-3"
                 >
                   <Trash2 size={16} /> Delete Flat
                 </button>
@@ -255,7 +262,7 @@ export default function Flats() {
             ) : (
               <button
                 onClick={() => openVacateModal(flat)}
-                className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-lg w-full flex items-center justify-center gap-2"
+                className="btn-outline w-full mt-4 text-[var(--md-sys-color-tertiary)]"
               >
                 <UserMinus size={16} /> Vacate
               </button>
@@ -266,16 +273,16 @@ export default function Flats() {
 
       {/* ASSIGN MODAL */}
       {showAssignModal && selectedFlat && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h2 className="text-xl font-display font-semibold text-slate-900 mb-4">
               Assign Tenant – {selectedFlat.title}
             </h2>
 
             <select
               value={selectedTenant}
               onChange={(e) => setSelectedTenant(e.target.value)}
-              className="w-full border p-2 rounded mb-4"
+              className="select mb-4"
             >
               <option value="">Select tenant</option>
               {availableTenants.map((t) => (
@@ -289,11 +296,7 @@ export default function Flats() {
               <button
                 onClick={requestAssignOtp}
                 disabled={isSendingAssignOtp}
-                className={`px-4 py-2 rounded w-full ${
-                  isSendingAssignOtp
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white'
-                }`}
+                className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSendingAssignOtp ? 'Sending OTP…' : 'Send OTP'}
               </button>
@@ -304,16 +307,12 @@ export default function Flats() {
                   placeholder="Enter OTP"
                   value={assignOtp}
                   onChange={(e) => setAssignOtp(e.target.value)}
-                  className="w-full border p-2 rounded mb-3"
+                  className="input mb-3"
                 />
                 <button
                   onClick={confirmAssign}
                   disabled={isAssigning}
-                  className={`px-4 py-2 rounded w-full ${
-                    isAssigning
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 text-white'
-                  }`}
+                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isAssigning ? 'Assigning…' : 'Confirm Assignment'}
                 </button>
@@ -325,9 +324,9 @@ export default function Flats() {
 
       {/* VACATE MODAL */}
       {showVacateModal && selectedFlat && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h2 className="text-xl font-display font-semibold text-slate-900 mb-4">
               Vacate Flat – {selectedFlat.title}
             </h2>
 
@@ -335,11 +334,7 @@ export default function Flats() {
               <button
                 onClick={requestVacateOtp}
                 disabled={isSendingVacateOtp}
-                className={`px-4 py-2 rounded w-full ${
-                  isSendingVacateOtp
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white'
-                }`}
+                className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSendingVacateOtp ? 'Sending OTP…' : 'Send OTP'}
               </button>
@@ -350,16 +345,12 @@ export default function Flats() {
                   placeholder="Enter OTP"
                   value={vacateOtp}
                   onChange={(e) => setVacateOtp(e.target.value)}
-                  className="w-full border p-2 rounded mb-3"
+                  className="input mb-3"
                 />
                 <button
                   onClick={confirmVacate}
                   disabled={isVacating}
-                  className={`px-4 py-2 rounded w-full ${
-                    isVacating
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-yellow-600 text-white'
-                  }`}
+                  className="btn-outline w-full text-[var(--md-sys-color-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isVacating ? 'Processing…' : 'Confirm Vacate'}
                 </button>

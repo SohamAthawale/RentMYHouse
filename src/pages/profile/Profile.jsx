@@ -60,35 +60,33 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen px-4 sm:px-6 lg:px-10 py-8">
+      <div className="max-w-5xl mx-auto space-y-8">
         <button
           onClick={goBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+          className="btn-ghost w-fit"
         >
           <ArrowLeft size={20} />
           Back to Dashboard
         </button>
 
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">My Profile</h1>
+        <h1 className="page-title">My Profile</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card p-6">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-100 rounded-full mb-4">
-                <User size={48} className="text-blue-600" />
+              <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl mb-4 shadow-soft bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+                <User size={40} />
               </div>
-              <h2 className="text-xl font-semibold text-gray-800">{user?.username}</h2>
-              <p className="text-gray-600 mt-1">{user?.account_type}</p>
-              <span className="inline-block mt-3 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                Active
-              </span>
+              <h2 className="text-xl font-semibold text-slate-900">{user?.username}</h2>
+              <p className="text-slate-600 mt-1">{user?.account_type}</p>
+              <span className="badge-success mt-3">Active</span>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="mt-6 pt-6 border-t border-slate-200/70">
               <button
                 onClick={() => navigate('/change-password')}
-                className="w-full flex items-center justify-center gap-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-900 transition"
+                className="btn-secondary w-full"
               >
                 <Key size={20} />
                 Change Password
@@ -96,12 +94,12 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">Profile Information</h2>
+          <div className="lg:col-span-2 card p-6">
+            <h2 className="section-title mb-6">Profile Information</h2>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                   <User size={16} />
                   Username
                 </label>
@@ -109,12 +107,12 @@ export default function Profile() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                 />
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                   <Mail size={16} />
                   Email Address
                 </label>
@@ -122,12 +120,12 @@ export default function Profile() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                 />
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                   <Phone size={16} />
                   Contact Number
                 </label>
@@ -135,7 +133,7 @@ export default function Profile() {
                   type="text"
                   value={formData.contact_no}
                   onChange={(e) => setFormData({ ...formData, contact_no: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input"
                 />
               </div>
 
@@ -143,7 +141,7 @@ export default function Profile() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                  className="btn-primary w-full disabled:opacity-50"
                 >
                   {loading ? 'Updating...' : 'Update Profile'}
                 </button>

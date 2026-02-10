@@ -8,6 +8,7 @@ import {
   DollarSign,
   BarChart3,
 } from 'lucide-react';
+import LogoMark from '../assets/brand/logo-mark.svg';
 
 const ownerLinks = [
   { to: '/owner/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -47,53 +48,67 @@ export default function Sidebar() {
       {/* ========================= */}
       {/* DESKTOP SIDEBAR */}
       {/* ========================= */}
-      <aside className="hidden md:block w-64 bg-gray-900 text-white min-h-screen p-4">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">RMS</h1>
+      <aside className="side-panel">
+        <div>
+          <div className="side-brand">
+            <img src={LogoMark} alt="RentMYHouse" className="h-12 w-12" />
+            <div>
+              <p className="text-[0.65rem] uppercase tracking-[0.35em] text-slate-500">
+                RentMYHouse
+              </p>
+              <p className="text-base font-display font-semibold text-slate-900">
+                Rental Hub
+              </p>
+            </div>
+          </div>
+
+          <nav className="side-links">
+            {links.map(link => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  `side-link ${isActive ? 'side-link-active' : ''}`
+                }
+              >
+                <span className="side-link-icon">
+                  <link.icon size={20} />
+                </span>
+                <span>{link.label}</span>
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
-        <nav className="space-y-2">
-          {links.map(link => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800'
-                }`
-              }
-            >
-              <link.icon size={20} />
-              <span>{link.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        <div className="side-footer">
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            Tip
+          </p>
+          <p className="text-sm font-semibold text-slate-900 mt-2">
+            Keep rent reminders on auto.
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            Reduce missed payments with scheduled nudges.
+          </p>
+        </div>
       </aside>
 
       {/* ========================= */}
       {/* MOBILE BOTTOM NAV */}
       {/* ========================= */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 z-50">
-        <div className="flex justify-around">
-          {links.map(link => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center py-2 px-1 text-xs transition ${
-                  isActive
-                    ? 'text-blue-500'
-                    : 'text-gray-400'
-                }`
-              }
-            >
-              <link.icon size={22} />
-              <span className="mt-1">{link.label}</span>
-            </NavLink>
-          ))}
-        </div>
+      <nav className="mobile-dock">
+        {links.map(link => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            className={({ isActive }) =>
+              `mobile-dock-item ${isActive ? 'mobile-dock-item-active' : ''}`
+            }
+          >
+            <link.icon size={22} />
+            <span>{link.label}</span>
+          </NavLink>
+        ))}
       </nav>
     </>
   );

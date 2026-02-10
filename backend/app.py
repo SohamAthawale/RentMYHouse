@@ -41,7 +41,7 @@ from flask_cors import CORS
 CORS(
     app,
     supports_credentials=True,
-    origins=["http://127.0.0.1:5173"]
+    origins=["http://127.0.0.1:5177"]
 )
 app.secret_key = "dev-secret-key-change-later"
 app.config.update(
@@ -52,7 +52,7 @@ app.config.update(
 
 # Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'postgresql://postgres:222003@localhost:5432/rentmyhouse'
+    'postgresql://sohamathawale@localhost:5432/rentmyhouse'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
@@ -969,4 +969,4 @@ if __name__ == '__main__':
         print("   Admin: /admin/statistics, /admin/users, /delete-user/<id>")
         print("   Health: /health")
     
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    app.run(debug=True, host='0.0.0.0', port=8000)

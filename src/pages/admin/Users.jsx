@@ -76,20 +76,25 @@ export default function Users() {
   if (loading) return <Loader />;
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
-        <div className="flex gap-3">
+    <div className="page">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+            Admin
+          </p>
+          <h1 className="page-title">User Management</h1>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            className="btn-primary"
           >
             <Download size={20} />
             Export Data
           </button>
           <button
             onClick={handleCleanup}
-            className="flex items-center gap-2 bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition"
+            className="btn-outline"
           >
             <Trash size={20} />
             Cleanup
@@ -97,15 +102,15 @@ export default function Users() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Filters</h2>
+      <div className="card p-6">
+        <h2 className="section-title mb-4">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Account Type</label>
             <select
               value={filters.account_type}
               onChange={(e) => setFilters({ ...filters, account_type: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="select"
             >
               <option value="">All</option>
               <option value="Owner">Owner</option>
@@ -115,11 +120,11 @@ export default function Users() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rental Status</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Rental Status</label>
             <select
               value={filters.currently_rented}
               onChange={(e) => setFilters({ ...filters, currently_rented: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="select"
             >
               <option value="">All</option>
               <option value="true">Currently Rented</option>
@@ -130,76 +135,76 @@ export default function Users() {
       </div>
 
       {users.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <UsersIcon size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Users Found</h3>
-          <p className="text-gray-500">Try adjusting your filters</p>
+        <div className="card p-12 text-center">
+          <UsersIcon size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">No Users Found</h3>
+          <p className="text-slate-500">Try adjusting your filters</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-card">
+          <table className="min-w-full">
+            <thead className="table-head">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-4 text-left">
                   Username
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-4 text-left">
                   Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-4 text-left">
                   Contact
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-4 text-left">
                   Type
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-4 text-left">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-4 text-left">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="text-sm text-slate-700">
               {users.map((user) => (
-                <tr key={user.unique_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <tr key={user.unique_id} className="table-row">
+                  <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-900">
                     {user.username}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     {user.email}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap">
                     {user.contact_no}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      user.account_type === 'Owner' ? 'bg-blue-100 text-blue-800' :
-                      user.account_type === 'Tenant' ? 'bg-green-100 text-green-800' :
-                      'bg-purple-100 text-purple-800'
+                    <span className={`badge ${
+                      user.account_type === 'Owner' ? 'badge-info' :
+                      user.account_type === 'Tenant' ? 'badge-success' :
+                      'badge-neutral'
                     }`}>
                       {user.account_type}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {user.account_type === 'Tenant' && (
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        user.currently_rented ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      <span className={`badge ${
+                        user.currently_rented ? 'badge-success' : 'badge-neutral'
                       }`}>
                         {user.currently_rented ? 'Rented' : 'Available'}
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                  <td className="px-6 py-4 whitespace-nowrap space-x-3">
                     <button
                       onClick={() => navigate(`/admin/user-details/${user.unique_id}`)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-[var(--md-sys-color-primary)]"
                     >
                       <Eye size={18} />
                     </button>
                     <button
                       onClick={() => handleDeleteUser(user.unique_id)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-[var(--md-sys-color-error)]"
                     >
                       <Trash2 size={18} />
                     </button>

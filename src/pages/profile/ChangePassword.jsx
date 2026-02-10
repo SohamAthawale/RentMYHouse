@@ -51,28 +51,28 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen px-4 sm:px-6 lg:px-10 py-8">
+      <div className="max-w-2xl mx-auto space-y-6">
         <button
           onClick={() => navigate('/profile')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+          className="btn-ghost w-fit"
         >
           <ArrowLeft size={20} />
           Back to Profile
         </button>
 
-        <div className="bg-white rounded-lg shadow p-8">
+        <div className="card p-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-              <Key size={32} className="text-blue-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-soft bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+              <Key size={28} />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Change Password</h1>
-            <p className="text-gray-600">Update your account password</p>
+            <h1 className="text-3xl font-display font-semibold text-slate-900 mb-2">Change Password</h1>
+            <p className="text-slate-600">Update your account password</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                 <Lock size={16} />
                 Current Password
               </label>
@@ -80,13 +80,13 @@ export default function ChangePassword() {
                 type="password"
                 value={formData.old_password}
                 onChange={(e) => setFormData({ ...formData, old_password: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 placeholder="••••••••"
               />
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                 <Lock size={16} />
                 New Password
               </label>
@@ -94,13 +94,13 @@ export default function ChangePassword() {
                 type="password"
                 value={formData.new_password}
                 onChange={(e) => setFormData({ ...formData, new_password: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 placeholder="••••••••"
               />
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
                 <Lock size={16} />
                 Confirm New Password
               </label>
@@ -108,7 +108,7 @@ export default function ChangePassword() {
                 type="password"
                 value={formData.confirm_password}
                 onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 placeholder="••••••••"
               />
             </div>
@@ -117,7 +117,7 @@ export default function ChangePassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-50"
+                className="btn-primary w-full disabled:opacity-50"
               >
                 {loading ? 'Changing Password...' : 'Change Password'}
               </button>

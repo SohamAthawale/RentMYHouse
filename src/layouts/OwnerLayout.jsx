@@ -4,12 +4,14 @@ import Sidebar from '../components/Sidebar';
 
 export default function OwnerLayout() {
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="app-shell flex min-h-screen">
       <Sidebar />
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col">
         <Navbar />
-        <main className="p-6">
-          <Outlet />
+        <main className="app-main">
+          <div className="mx-auto w-full max-w-6xl">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

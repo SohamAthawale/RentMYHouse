@@ -125,9 +125,9 @@ export default function TenantDashboard() {
   const getPriceLabel = (quoted, predicted) => {
     const diff = quoted - predicted;
 
-    if (diff > 8000) return { text: "Overpriced", color: "text-red-600" };
-    if (diff < -8000) return { text: "Undervalued", color: "text-blue-600" };
-    return { text: "Fair Price", color: "text-green-600" };
+    if (diff > 8000) return { text: "Overpriced", color: "text-[var(--md-sys-color-error)]" };
+    if (diff < -8000) return { text: "Undervalued", color: "text-[var(--md-sys-color-tertiary)]" };
+    return { text: "Fair Price", color: "text-[var(--md-sys-color-primary)]" };
   };
 
   // =================================================
@@ -144,20 +144,23 @@ export default function TenantDashboard() {
   // DASHBOARD CARDS
   // =================================================
   const cards = [
-    { label: 'Total Requests', value: stats.totalRequests, icon: Wrench },
-    { label: 'Pending Requests', value: stats.pendingRequests, icon: Wrench },
-    { label: 'Completed Requests', value: stats.completedRequests, icon: CheckCircle },
-    { label: 'Total Payments', value: stats.totalPayments, icon: DollarSign },
+    { label: 'Total Requests', value: stats.totalRequests, icon: Wrench, tone: 'icon-primary', accent: 'border-[var(--md-sys-color-primary)]' },
+    { label: 'Pending Requests', value: stats.pendingRequests, icon: Wrench, tone: 'icon-secondary', accent: 'border-[var(--md-sys-color-secondary)]' },
+    { label: 'Completed Requests', value: stats.completedRequests, icon: CheckCircle, tone: 'icon-tertiary', accent: 'border-[var(--md-sys-color-tertiary)]' },
+    { label: 'Total Payments', value: stats.totalPayments, icon: DollarSign, tone: 'icon-primary', accent: 'border-[var(--md-sys-color-primary)]' },
   ];
 
   return (
-  <div className="space-y-8 px-3 sm:px-0">
+  <div className="page px-1 sm:px-0">
     {/* ========================= */}
     {/* HEADER */}
     {/* ========================= */}
-    <h1 className="text-2xl md:text-3xl font-bold">
-      Tenant Dashboard
-    </h1>
+    <div>
+      <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+        Tenant
+      </p>
+      <h1 className="page-title">Tenant Dashboard</h1>
+    </div>
 
     {/* ========================= */}
     {/* STATS */}
@@ -166,16 +169,18 @@ export default function TenantDashboard() {
       {cards.map((card, i) => (
         <div
           key={i}
-          className="bg-white p-4 md:p-6 rounded-lg shadow"
+          className={`stat-card border-l-4 ${card.accent}`}
         >
-          <p className="text-gray-500 text-xs md:text-sm">
-            {card.label}
-          </p>
-          <div className="flex justify-between items-center mt-2">
-            <p className="text-xl md:text-3xl font-bold">
+          <div>
+            <p className="text-slate-500 text-xs md:text-sm">
+              {card.label}
+            </p>
+            <p className="text-xl md:text-3xl font-display font-semibold mt-2">
               {card.value}
             </p>
-            <card.icon className="text-gray-400" size={20} />
+          </div>
+          <div className={`stat-icon ${card.tone}`}>
+            <card.icon size={18} />
           </div>
         </div>
       ))}
@@ -185,7 +190,7 @@ export default function TenantDashboard() {
     {/* AVAILABLE FLATS */}
     {/* ========================= */}
     <div>
-      <h2 className="text-xl md:text-2xl font-semibold mb-4 flex items-center gap-2">
+      <h2 className="section-title mb-4 flex items-center gap-2">
         <Home size={20} /> Available Flats
       </h2>
 
@@ -200,16 +205,16 @@ export default function TenantDashboard() {
           return (
             <div
               key={flat.flat_unique_id}
-              className="bg-white p-4 md:p-6 rounded-lg shadow"
+              className="card-hover p-4 md:p-6"
             >
-              <h3 className="font-semibold text-base md:text-lg">
+              <h3 className="font-semibold text-base md:text-lg text-slate-900">
                 {flat.title}
               </h3>
-              <p className="text-gray-500 text-sm">
+              <p className="text-slate-500 text-sm">
                 {flat.address}
               </p>
 
-              <div className="mt-3 space-y-1 text-sm md:text-base">
+              <div className="mt-3 space-y-1 text-sm md:text-base text-slate-700">
                 <p>
                   Quoted Rent: <strong>₹{quoted}</strong>
                 </p>
@@ -230,15 +235,15 @@ export default function TenantDashboard() {
     {/* ========================= */}
     {/* IDEAL RENT PREDICTOR */}
     {/* ========================= */}
-    <div className="bg-white p-4 md:p-6 rounded-lg shadow">
-      <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
+    <div className="card p-4 md:p-6">
+      <h2 className="section-title mb-4 flex items-center gap-2">
         <TrendingUp size={20} /> Rent Predictor
       </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Bedrooms */}
         <div>
-          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+          <label className="block text-xs md:text-sm text-slate-600 mb-1">
             Bedrooms (BHK)
           </label>
           <input
@@ -249,13 +254,13 @@ export default function TenantDashboard() {
             onChange={e =>
               setIdealForm({ ...idealForm, bedrooms: e.target.value })
             }
-            className="border p-2 rounded w-full text-sm"
+            className="input text-sm"
           />
         </div>
 
         {/* Bathrooms */}
         <div>
-          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+          <label className="block text-xs md:text-sm text-slate-600 mb-1">
             Bathrooms
           </label>
           <input
@@ -266,13 +271,13 @@ export default function TenantDashboard() {
             onChange={e =>
               setIdealForm({ ...idealForm, bathrooms: e.target.value })
             }
-            className="border p-2 rounded w-full text-sm"
+            className="input text-sm"
           />
         </div>
 
         {/* Area */}
         <div>
-          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+          <label className="block text-xs md:text-sm text-slate-600 mb-1">
             Area (sq ft)
           </label>
           <input
@@ -283,13 +288,13 @@ export default function TenantDashboard() {
             onChange={e =>
               setIdealForm({ ...idealForm, area_sqft: e.target.value })
             }
-            className="border p-2 rounded w-full text-sm"
+            className="input text-sm"
           />
         </div>
 
         {/* Furnishing */}
         <div>
-          <label className="block text-xs md:text-sm text-gray-600 mb-1">
+          <label className="block text-xs md:text-sm text-slate-600 mb-1">
             Furnishing
           </label>
           <select
@@ -297,7 +302,7 @@ export default function TenantDashboard() {
             onChange={e =>
               setIdealForm({ ...idealForm, furnishing: e.target.value })
             }
-            className="border p-2 rounded w-full text-sm"
+            className="select text-sm"
           >
             <option>Unfurnished</option>
             <option>Semi-Furnished</option>
@@ -308,13 +313,13 @@ export default function TenantDashboard() {
 
       <button
         onClick={handleIdealPredict}
-        className="mt-6 w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        className="btn-primary mt-6 w-full sm:w-auto"
       >
         Predict Rent
       </button>
 
       {idealPrediction && (
-        <p className="mt-4 text-base md:text-lg">
+        <p className="mt-4 text-base md:text-lg text-slate-700">
           Estimated Rent: <strong>₹{idealPrediction}</strong>
         </p>
       )}

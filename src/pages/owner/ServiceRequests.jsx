@@ -93,13 +93,13 @@ export default function ServiceRequests() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'Open':
-        return <Clock className="text-yellow-500" size={20} />;
+        return <Clock className="text-[var(--md-sys-color-tertiary)]" size={20} />;
       case 'In Progress':
-        return <Wrench className="text-blue-500" size={20} />;
+        return <Wrench className="text-[var(--md-sys-color-primary)]" size={20} />;
       case 'Completed':
-        return <CheckCircle className="text-green-500" size={20} />;
+        return <CheckCircle className="text-[var(--md-sys-color-primary)]" size={20} />;
       case 'Cancelled':
-        return <XCircle className="text-red-500" size={20} />;
+        return <XCircle className="text-[var(--md-sys-color-error)]" size={20} />;
       default:
         return null;
     }
@@ -108,73 +108,74 @@ export default function ServiceRequests() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Open':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'badge-warning';
       case 'In Progress':
-        return 'bg-blue-100 text-blue-800';
+        return 'badge-info';
       case 'Completed':
-        return 'bg-green-100 text-green-800';
+        return 'badge-success';
       case 'Cancelled':
-        return 'bg-red-100 text-red-800';
+        return 'badge-danger';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'badge-neutral';
     }
   };
 
   if (loading) return <Loader />;
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        Service Requests
-      </h1>
+    <div className="page">
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+          Operations
+        </p>
+        <h1 className="page-title">Service Requests</h1>
+      </div>
 
       {requests.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Wrench size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+        <div className="card p-12 text-center">
+          <Wrench size={48} className="mx-auto text-slate-300 mb-4" />
+          <h3 className="text-xl font-semibold text-slate-700 mb-2">
             No Service Requests
           </h3>
-          <p className="text-gray-500">
+          <p className="text-slate-500">
             All service requests will appear here
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-card">
+          <table className="min-w-full">
+            <thead className="table-head">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium">Flat</th>
-                <th className="px-6 py-3 text-left text-xs font-medium">Tenant</th>
-                <th className="px-6 py-3 text-left text-xs font-medium">Issue</th>
-                <th className="px-6 py-3 text-left text-xs font-medium">Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium">Actions</th>
+                <th className="px-6 py-4 text-left">Flat</th>
+                <th className="px-6 py-4 text-left">Tenant</th>
+                <th className="px-6 py-4 text-left">Issue</th>
+                <th className="px-6 py-4 text-left">Priority</th>
+                <th className="px-6 py-4 text-left">Status</th>
+                <th className="px-6 py-4 text-left">Actions</th>
               </tr>
             </thead>
 
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="text-sm text-slate-700">
               {requests.map((req) => (
-                <tr key={req.request_unique_id}>
-                  <td className="px-6 py-4 text-sm">{req.flat_title}</td>
-                  <td className="px-6 py-4 text-sm">{req.tenant_name}</td>
-                  <td className="px-6 py-4 text-sm">{req.title}</td>
-                  <td className="px-6 py-4 text-sm">{req.priority}</td>
+                <tr key={req.request_unique_id} className="table-row">
+                  <td className="px-6 py-4">{req.flat_title}</td>
+                  <td className="px-6 py-4">{req.tenant_name}</td>
+                  <td className="px-6 py-4">{req.title}</td>
+                  <td className="px-6 py-4">{req.priority}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(req.status)}
                       <span
-                        className={`px-2 py-1 text-xs rounded-full ${getStatusColor(
-                          req.status
-                        )}`}
+                        className={`badge ${getStatusColor(req.status)}`}
                       >
                         {req.status}
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm">
+                  <td className="px-6 py-4">
                     <button
                       onClick={() => openUpdateModal(req)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-[var(--md-sys-color-primary)] font-semibold"
                     >
                       Update
                     </button>
@@ -187,21 +188,21 @@ export default function ServiceRequests() {
       )}
 
       {showUpdateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">
+        <div className="modal-backdrop">
+          <div className="modal-card">
+            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-4">
               Update Service Request
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Status</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
                 <select
                   value={updateData.status}
                   onChange={(e) =>
                     setUpdateData({ ...updateData, status: e.target.value })
                   }
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="select"
                 >
                   <option value="Open">Open</option>
                   <option value="In Progress">In Progress</option>
@@ -213,7 +214,7 @@ export default function ServiceRequests() {
               {updateData.status === 'Completed' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Actual Cost (₹)
                     </label>
                     <input
@@ -226,12 +227,12 @@ export default function ServiceRequests() {
                           actual_cost: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Contractor Name
                     </label>
                     <input
@@ -243,12 +244,12 @@ export default function ServiceRequests() {
                           contractor_name: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Contractor Contact
                     </label>
                     <input
@@ -260,14 +261,14 @@ export default function ServiceRequests() {
                           contractor_contact: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="input"
                     />
                   </div>
                 </>
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Owner Notes
                 </label>
                 <textarea
@@ -279,7 +280,7 @@ export default function ServiceRequests() {
                       owner_notes: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="textarea"
                 />
               </div>
             </div>
@@ -287,13 +288,13 @@ export default function ServiceRequests() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleUpdate}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                className="btn-primary flex-1"
               >
                 Update
               </button>
               <button
                 onClick={() => setShowUpdateModal(false)}
-                className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                className="btn-outline flex-1"
               >
                 Cancel
               </button>
